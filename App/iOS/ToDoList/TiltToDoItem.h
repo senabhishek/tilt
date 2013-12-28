@@ -9,7 +9,7 @@
 #import <Foundation/Foundation.h>
 
 @interface TiltToDoItem : NSObject
-
+	
 @property NSString *itemName;
 @property BOOL completed;
 @property NSDate *creationDate;

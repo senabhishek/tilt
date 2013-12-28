@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381D50B8186DD1ED0035BFED /* MapKit.framework */; };
+		381D50BE186DD4AE0035BFED /* BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = 381D50BC186DD4AE0035BFED /* BLE.m */; };
 		38CF3647186D992300DA65AE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF3646186D992300DA65AE /* Foundation.framework */; };
 		38CF3649186D992300DA65AE /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF3648186D992300DA65AE /* CoreGraphics.framework */; };
 		38CF364B186D992300DA65AE /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF364A186D992300DA65AE /* UIKit.framework */; };
@@ -19,6 +21,10 @@
 		38CF3662186D992400DA65AE /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF364A186D992300DA65AE /* UIKit.framework */; };
 		38CF366A186D992400DA65AE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 38CF3668186D992400DA65AE /* InfoPlist.strings */; };
 		38CF366C186D992400DA65AE /* TiltTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 38CF366B186D992400DA65AE /* TiltTests.m */; };
+		38CF3676186D9A4B00DA65AE /* Tilt.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 38CF3675186D9A4B00DA65AE /* Tilt.storyboard */; };
+		38CF3679186DA6DC00DA65AE /* TiltViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 38CF3678186DA6DC00DA65AE /* TiltViewController.m */; };
+		38DBDF90186DB0E500F64E64 /* CoreBluetooth.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38DBDF8F186DB0E500F64E64 /* CoreBluetooth.framework */; };
+		38DBDF92186DB0EE00F64E64 /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38DBDF91186DB0EE00F64E64 /* CoreLocation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -32,6 +38,10 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		381D50B8186DD1ED0035BFED /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
+		381D50BB186DD4AE0035BFED /* BLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLE.h; sourceTree = "<group>"; };
+		381D50BC186DD4AE0035BFED /* BLE.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BLE.m; sourceTree = "<group>"; };
+		381D50BD186DD4AE0035BFED /* BLEDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLEDefines.h; sourceTree = "<group>"; };
 		38CF3643186D992300DA65AE /* Tilt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tilt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		38CF3646186D992300DA65AE /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		38CF3648186D992300DA65AE /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -48,6 +58,11 @@
 		38CF3667186D992400DA65AE /* TiltTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "TiltTests-Info.plist"; sourceTree = "<group>"; };
 		38CF3669186D992400DA65AE /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		38CF366B186D992400DA65AE /* TiltTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TiltTests.m; sourceTree = "<group>"; };
+		38CF3675186D9A4B00DA65AE /* Tilt.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; path = Tilt.storyboard; sourceTree = SOURCE_ROOT; };
+		38CF3677186DA6DC00DA65AE /* TiltViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TiltViewController.h; sourceTree = "<group>"; };
+		38CF3678186DA6DC00DA65AE /* TiltViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TiltViewController.m; sourceTree = "<group>"; };
+		38DBDF8F186DB0E500F64E64 /* CoreBluetooth.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreBluetooth.framework; path = System/Library/Frameworks/CoreBluetooth.framework; sourceTree = SDKROOT; };
+		38DBDF91186DB0EE00F64E64 /* CoreLocation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreLocation.framework; path = System/Library/Frameworks/CoreLocation.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -55,8 +70,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				38DBDF92186DB0EE00F64E64 /* CoreLocation.framework in Frameworks */,
+				38DBDF90186DB0E500F64E64 /* CoreBluetooth.framework in Frameworks */,
 				38CF3649186D992300DA65AE /* CoreGraphics.framework in Frameworks */,
 				38CF364B186D992300DA65AE /* UIKit.framework in Frameworks */,
+				381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */,
 				38CF3647186D992300DA65AE /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -74,6 +92,16 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		381D50BA186DD4AE0035BFED /* BLE */ = {
+			isa = PBXGroup;
+			children = (
+				381D50BB186DD4AE0035BFED /* BLE.h */,
+				381D50BC186DD4AE0035BFED /* BLE.m */,
+				381D50BD186DD4AE0035BFED /* BLEDefines.h */,
+			);
+			path = BLE;
+			sourceTree = "<group>";
+		};
 		38CF363A186D992300DA65AE = {
 			isa = PBXGroup;
 			children = (
@@ -96,6 +124,9 @@
 		38CF3645186D992300DA65AE /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				381D50B8186DD1ED0035BFED /* MapKit.framework */,
+				38DBDF91186DB0EE00F64E64 /* CoreLocation.framework */,
+				38DBDF8F186DB0E500F64E64 /* CoreBluetooth.framework */,
 				38CF3646186D992300DA65AE /* Foundation.framework */,
 				38CF3648186D992300DA65AE /* CoreGraphics.framework */,
 				38CF364A186D992300DA65AE /* UIKit.framework */,
@@ -107,6 +138,10 @@
 		38CF364C186D992300DA65AE /* Tilt */ = {
 			isa = PBXGroup;
 			children = (
+				381D50BA186DD4AE0035BFED /* BLE */,
+				38CF3675186D9A4B00DA65AE /* Tilt.storyboard */,
+				38CF3678186DA6DC00DA65AE /* TiltViewController.m */,
+				38CF3677186DA6DC00DA65AE /* TiltViewController.h */,
 				38CF3655186D992300DA65AE /* TiltAppDelegate.h */,
 				38CF3656186D992300DA65AE /* TiltAppDelegate.m */,
 				38CF3658186D992300DA65AE /* Images.xcassets */,
@@ -192,6 +227,16 @@
 				LastUpgradeCheck = 0500;
 				ORGANIZATIONNAME = Tilt;
 				TargetAttributes = {
+					38CF3642186D992300DA65AE = {
+						SystemCapabilities = {
+							com.apple.BackgroundModes = {
+								enabled = 1;
+							};
+							com.apple.iOS = {
+								enabled = 1;
+							};
+						};
+					};
 					38CF365D186D992400DA65AE = {
 						TestTargetID = 38CF3642186D992300DA65AE;
 					};
@@ -222,6 +267,7 @@
 			files = (
 				38CF3651186D992300DA65AE /* InfoPlist.strings in Resources */,
 				38CF3659186D992300DA65AE /* Images.xcassets in Resources */,
+				38CF3676186D9A4B00DA65AE /* Tilt.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -241,7 +287,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				38CF3653186D992300DA65AE /* main.m in Sources */,
+				38CF3679186DA6DC00DA65AE /* TiltViewController.m in Sources */,
 				38CF3657186D992300DA65AE /* TiltAppDelegate.m in Sources */,
+				381D50BE186DD4AE0035BFED /* BLE.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -442,6 +490,7 @@
 				38CF3671186D992400DA65AE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		38CF3672186D992400DA65AE /* Build configuration list for PBXNativeTarget "TiltTests" */ = {
 			isa = XCConfigurationList;
@@ -450,6 +499,7 @@
 				38CF3674186D992400DA65AE /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
