@@ -832,12 +832,13 @@ void initMMA8452()
 
   MMA8452Standby();  // Must be in standby to change registers
 
-  // Set up the full scale range to 2, 4, or 8g.
+  // Initialize GSCALE
   byte fsr = GSCALE;
   if(fsr > 8) fsr = 8; //Easy error check
   fsr >>= 2; // Neat trick, see page 22. 00 = 2G, 01 = 4A, 10 = 8G
   writeRegister(XYZ_DATA_CFG, fsr);
 
+  // 
   //The default data rate is 800Hz and we don't modify it in this example code
 
   MMA8452Active();  // Set to active to start reading
