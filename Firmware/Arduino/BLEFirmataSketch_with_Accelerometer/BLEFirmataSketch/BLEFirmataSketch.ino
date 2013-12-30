@@ -711,46 +711,24 @@ void setAccelConfigParm(boolean flag)
   accelConfgd = flag;
 }
 
-void monitorAccelData()
+/* Master Theft Detection Logic */
+/* Check delta between current accelData and X/Y/Z threshold values
+   to decide whether someone is moving the bike or not. Return boolean
+   TRUE if we think someone is moving the bike and FALSE otherwise. */
+boolean monitorAccelData()
 {
+  boolean triggerAlarm = false;
+  
   // Read current accel values
   readAccelData();
     
   if (abs(initAccelG[0]-accelG[0])>=threshX ||
        abs(initAccelG[0]-accelG[0])>=threshY ||
-       abs(initAccelG[0]-accelG[0])>=threshZ)
-   {
-      Serial.println(""); 
-      if (abs(initAccelG[0]-accelG[0])>=threshX)
-      {
-        Serial.print("X: ");      
-        Serial.print(abs(initAccelG[0]-accelG[0]),4);      
-        Serial.print(", Red LED: ");
-        Serial.println(redVal);         
-        tone(soundPin, NOTE_B0, 128);    
-        delay(128*1.3);
-      }
-      if (abs(initAccelG[1]-accelG[1])>=threshY)
-      {   
-        Serial.print("Y: ");      
-        Serial.print(abs(initAccelG[1]-accelG[1]),4);      
-        Serial.print(", Green LED: ");
-        Serial.println(greenVal);      
-        tone(soundPin, NOTE_FS7, 128);  
-        delay(128*1.3);     
-      }
-      
-      if (abs(initAccelG[2]-accelG[2])>=threshZ)
-      {     
-        Serial.print("Z: ");      
-        Serial.print(abs(initAccelG[2]-accelG[2]),4);  
-        Serial.print(", Blue LED: ");
-        Serial.println(blueVal);        
-        tone(soundPin, NOTE_DS5, 128);  
-        delay(128*1.3);              
-      }
-      Serial.println("");
+       abs(initAccelG[0]-accelG[0])>=threshZ) {
+     triggerAlarm = true;
    }  
+   
+   return triggerAlarm;
 }
 
 /*==============================================================================
