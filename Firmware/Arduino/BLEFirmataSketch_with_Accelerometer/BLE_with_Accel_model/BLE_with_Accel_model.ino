@@ -106,32 +106,7 @@ Servo servos[MAX_SERVOS];
 #define OUT_X_MSB 0x01
 #define XYZ_DATA_CFG  0x0E
 #define WHO_AM_I   0x0D
-
-// Control registers
 #define CTRL_REG1  0x2A
-#define CTRL_REG2  0x2B
-#define CTRL_REG3  0x2C
-#define CTRL_REG4  0x2D
-#define CTRL_REG5  0x2E
-#define ASLP_COUNT  0x29
-
-// Motion Detection registers
-#define FF_MT_CFG  0x15
-#define FF_MT_SRC  0x16
-#define FF_MT_THS  0x17
-#define FF_MT_COUNT  0x18
-
-//Transient registers
-#define TRANSIENT_CFG 0x1D
-#define TRANSIENT_THS 0x1F
-#define TRANSIENT_COUNT 0x20
-
-#define INT_SOURCE  0x0C
-
-// Bit-wise macros
-#define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
-#define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
-#define CHECKBIT(x,y) (x & (y))   //True if bit y of byte x=1. 
 
 #define GSCALE 2 // Sets full-scale range to +/-2, 4, or 8g. Used to calc real g values.
 
@@ -158,7 +133,7 @@ int accelCount[3];  // Stores the 12-bit signed value
 float initAccelG[3];
 // Now we'll calculate the accleration value into actual g's
 float accelG[3];  // Stores the real accel value in g's
-int baudRate = 9600;
+int baudRate = 57600;
 
 /*==============================================================================
  * FUNCTIONS
@@ -688,7 +663,7 @@ void setup()
   systemResetCallback();  // reset to default config
 
   // Enable serial debug
-  Serial.begin(baudRate);
+  Serial.begin(9600);
   
   // Default pins set to 9 and 8 for REQN and RDYN
   // Set your REQN and RDYN here before ble_begin() if you need
@@ -717,11 +692,11 @@ void readAndSaveAccelValues()
 
 void printAccelValues()
 {
-  Serial.print(accelG[0]);
+  Serial.print(accelCount[0]);
   Serial.print('|');
-  Serial.print(accelG[1]);
+  Serial.print(accelCount[1]);
   Serial.print(':');
-  Serial.println(accelG[2]);
+  Serial.println(accelCount[2]);
 }
 
 void initAccelData()
@@ -732,17 +707,17 @@ void initAccelData()
   initAccelG[0]=accelG[0];
   initAccelG[1]=accelG[1];
   initAccelG[2]=accelG[2];
-  Serial.println("initAccelData(): Initial value recalculated:");
-  Serial.println(initAccelG[0], 4);
-  Serial.println(initAccelG[1], 4);
-  Serial.println(initAccelG[2], 4); 
+  //Serial.println("initAccelData(): Initial value recalculated:");
+  // Serial.println(initAccelG[0], 4);
+  // Serial.println(initAccelG[1], 4);
+  // Serial.println(initAccelG[2], 4); 
   setAccelConfigParm(true);
 }
 
 void setAccelConfigParm(boolean flag)
 {
-  Serial.print("setAccelConfigParm: Changing accel config flag to ");
-  Serial.println(flag);
+  // Serial.print("setAccelConfigParm: Changing accel config flag to ");
+  // Serial.println(flag);
   accelConfgd = flag;
 }
 
@@ -826,29 +801,7 @@ void loop()
   
   // Read and print accel data
   readAndSaveAccelValues();
-  //printAccelValues();
-  byte val;
-  readRegisters(INT_SOURCE, sizeof(byte), &val);
-  if (val > 0) {
-    printAccelValues();
-    Serial.print("INT_SRC: ");
-    Serial.println(val);
-    #define SYSMOD 0x0B
-    readRegisters(SYSMOD, sizeof(byte), &val);
-    Serial.print("SYSMOD: ");
-    Serial.println(val);
-    #ifdef FF_MT_ENABLE
-      #define FF_MT_SRC 0x16    
-      readRegisters(FF_MT_SRC, sizeof(byte), &val);
-      Serial.print("FF_MT_SRC: ");
-      Serial.println(val);
-    #else  
-      #define TRANSIENT_SRC 0x1E    
-      readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
-      Serial.print("TRANSIENT_SRC: ");
-      Serial.println(val);
-    #endif
-  }
+  printAccelValues();
 }
 
 void readAccelData(int *destination)
@@ -877,98 +830,29 @@ void readAccelData(int *destination)
 // Initialize the MMA8452 registers 
 // See the many application notes for more info on setting all of these registers:
 // http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=MMA8452Q
-
 void initMMA8452()
 {
-  byte val = readRegister(WHO_AM_I);  // Read WHO_AM_I register
-  if (val == 0x2A) // WHO_AM_I should always be 0x2A
+  byte c = readRegister(WHO_AM_I);  // Read WHO_AM_I register
+  if (c == 0x2A) // WHO_AM_I should always be 0x2A
   {  
-    Serial.println("M is online...");
+    // Serial.println("M is online...");
   }
   else
   {
-    Serial.print("Could not connect to MMA8452Q: 0x");
-    Serial.println(val, HEX);
+    // Serial.print("Could not connect to MMA8452Q: 0x");
+    // Serial.println(c, HEX);
     while(1) ; // Loop forever if communication doesn't happen
   }
 
   MMA8452Standby();  // Must be in standby to change registers
 
   // Initialize GSCALE
-  val = GSCALE;
-  if(val > 8) val = 8; //Easy error check
-  val >>= 2; // Neat trick, see page 22. 00 = 2G, 01 = 4A, 10 = 8G
-  writeRegister(XYZ_DATA_CFG, val);
+  byte fsr = GSCALE;
+  if(fsr > 8) fsr = 8; //Easy error check
+  fsr >>= 2; // Neat trick, see page 22. 00 = 2G, 01 = 4A, 10 = 8G
+  writeRegister(XYZ_DATA_CFG, fsr);
 
-  // Initialize Control Registers
-  #define ASLP_12_5_HZ  0x40
-  #define ODR_50_HZ  0x20 
-  #define LNOISE_DEFAULT  0x00
-  #define F_READ_DEFAULT  0x00
-  val = (ASLP_12_5_HZ | ODR_50_HZ | LNOISE_DEFAULT | F_READ_DEFAULT);
-  writeRegister(CTRL_REG1, val);
-  
-  #define SLPE  0x04  
-  #define SMODS_LOW_POW  0x18
-  #define MODS_NORMAL_POW  0x00
-  #define ST_DEFAULT  0x00
-  #define RST_DEFAULT  0x00
-  val = (ST_DEFAULT | RST_DEFAULT | SMODS_LOW_POW | SLPE | MODS_NORMAL_POW);
-  writeRegister(CTRL_REG2, val);
-
-  #define WAKE_FF_MT  0x08
-  #define WAKE_TRANS  0x40  
-  #define IPOL_DEFAULT 0x00
-  #define PP_OD_DEFAULT 0x00
-  val = (WAKE_TRANS | IPOL_DEFAULT | PP_OD_DEFAULT);
-  writeRegister(CTRL_REG3, val);
-  
-  #define INT_EN_FF_MT  0x04
-  #define INT_EN_TRANS  0x20
-  #define INT_EN_ASLP  0x80
-  val = (INT_EN_ASLP | INT_EN_TRANS);
-  writeRegister(CTRL_REG4, val);
-  
-  #define INT_CFG_FF_MT  0x04
-  #define INT_CFG_TRANS  0x20
-  val = INT_CFG_TRANS;
-  writeRegister(CTRL_REG5, val);  
-  
-  #define ASLP_COUNT_50_HZ_960_MS  0x03
-  val = ASLP_COUNT_50_HZ_960_MS;
-  writeRegister(ASLP_COUNT, val); 
- #ifdef FF_MT_ENABLED 
-    #define ELE  0x80
-    #define OAE_MOTION  0x40
-    #define XYZ_EFE 0x18
-    val = (ELE | OAE_MOTION | XYZ_EFE);
-    writeRegister(FF_MT_CFG, val);
-    
-    #define DBCNTM_MOTION  0x00
-  //  #define THS_0_2_G  0x40
-    #define THS_0_2_G  0x0B
-    val = (DBCNTM_MOTION | THS_0_2_G);
-    writeRegister(FF_MT_THS, val);  
-  
-    #define FF_MT_DEBOUNCE_50_HZ_20_MS  0x0A
-    val = FF_MT_DEBOUNCE_50_HZ_20_MS;
-    writeRegister(FF_MT_COUNT, val);  
-  #else
-    #define ELE  0x10
-    #define XYZ_EFE 0x06
-    #define HPF_BYP 0x00
-    val = (ELE | XYZ_EFE | HPF_BYP);
-    writeRegister(TRANSIENT_CFG, val);
-
-    #define DBCNTM_TRANS  0x00 
-    #define TRANS_THS_0_5_G  0x05
-    val = (DBCNTM_TRANS | TRANS_THS_0_5_G);
-    writeRegister(TRANSIENT_THS, val);
-    
-    #define TRANS_DEBOUNCE_50_HZ_20_MS  0x03
-    val = TRANS_DEBOUNCE_50_HZ_20_MS;
-    writeRegister(TRANSIENT_COUNT, val);    
-  #endif
+  // Initialize 
   //The default data rate is 800Hz and we don't modify it in this example code
 
   MMA8452Active();  // Set to active to start reading
