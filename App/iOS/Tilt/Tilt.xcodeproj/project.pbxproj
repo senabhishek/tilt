@@ -9,13 +9,14 @@
 /* Begin PBXBuildFile section */
 		381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381D50B8186DD1ED0035BFED /* MapKit.framework */; };
 		381D50BE186DD4AE0035BFED /* BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = 381D50BC186DD4AE0035BFED /* BLE.m */; };
+		389C81FA18733E77009B7025 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 389C81F918733E77009B7025 /* Images.xcassets */; };
+		389C81FC187341D7009B7025 /* StringResource.strings in Resources */ = {isa = PBXBuildFile; fileRef = 389C81FB187341D7009B7025 /* StringResource.strings */; };
 		38CF3647186D992300DA65AE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF3646186D992300DA65AE /* Foundation.framework */; };
 		38CF3649186D992300DA65AE /* CoreGraphics.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF3648186D992300DA65AE /* CoreGraphics.framework */; };
 		38CF364B186D992300DA65AE /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF364A186D992300DA65AE /* UIKit.framework */; };
 		38CF3651186D992300DA65AE /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 38CF364F186D992300DA65AE /* InfoPlist.strings */; };
 		38CF3653186D992300DA65AE /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 38CF3652186D992300DA65AE /* main.m */; };
 		38CF3657186D992300DA65AE /* TiltAppDelegate.m in Sources */ = {isa = PBXBuildFile; fileRef = 38CF3656186D992300DA65AE /* TiltAppDelegate.m */; };
-		38CF3659186D992300DA65AE /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 38CF3658186D992300DA65AE /* Images.xcassets */; };
 		38CF3660186D992400DA65AE /* XCTest.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF365F186D992400DA65AE /* XCTest.framework */; };
 		38CF3661186D992400DA65AE /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF3646186D992300DA65AE /* Foundation.framework */; };
 		38CF3662186D992400DA65AE /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 38CF364A186D992300DA65AE /* UIKit.framework */; };
@@ -42,6 +43,8 @@
 		381D50BB186DD4AE0035BFED /* BLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLE.h; sourceTree = "<group>"; };
 		381D50BC186DD4AE0035BFED /* BLE.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BLE.m; sourceTree = "<group>"; };
 		381D50BD186DD4AE0035BFED /* BLEDefines.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLEDefines.h; sourceTree = "<group>"; };
+		389C81F918733E77009B7025 /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
+		389C81FB187341D7009B7025 /* StringResource.strings */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.strings; path = StringResource.strings; sourceTree = "<group>"; };
 		38CF3643186D992300DA65AE /* Tilt.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tilt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		38CF3646186D992300DA65AE /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		38CF3648186D992300DA65AE /* CoreGraphics.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreGraphics.framework; path = System/Library/Frameworks/CoreGraphics.framework; sourceTree = SDKROOT; };
@@ -52,7 +55,6 @@
 		38CF3654186D992300DA65AE /* Tilt-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Tilt-Prefix.pch"; sourceTree = "<group>"; };
 		38CF3655186D992300DA65AE /* TiltAppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = TiltAppDelegate.h; sourceTree = "<group>"; };
 		38CF3656186D992300DA65AE /* TiltAppDelegate.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = TiltAppDelegate.m; sourceTree = "<group>"; };
-		38CF3658186D992300DA65AE /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Images.xcassets; sourceTree = "<group>"; };
 		38CF365E186D992400DA65AE /* TiltTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TiltTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		38CF365F186D992400DA65AE /* XCTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = XCTest.framework; path = Library/Frameworks/XCTest.framework; sourceTree = DEVELOPER_DIR; };
 		38CF3667186D992400DA65AE /* TiltTests-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "TiltTests-Info.plist"; sourceTree = "<group>"; };
@@ -144,7 +146,7 @@
 				38CF3677186DA6DC00DA65AE /* TiltViewController.h */,
 				38CF3655186D992300DA65AE /* TiltAppDelegate.h */,
 				38CF3656186D992300DA65AE /* TiltAppDelegate.m */,
-				38CF3658186D992300DA65AE /* Images.xcassets */,
+				389C81F918733E77009B7025 /* Images.xcassets */,
 				38CF364D186D992300DA65AE /* Supporting Files */,
 			);
 			path = Tilt;
@@ -157,6 +159,7 @@
 				38CF364F186D992300DA65AE /* InfoPlist.strings */,
 				38CF3652186D992300DA65AE /* main.m */,
 				38CF3654186D992300DA65AE /* Tilt-Prefix.pch */,
+				389C81FB187341D7009B7025 /* StringResource.strings */,
 			);
 			name = "Supporting Files";
 			sourceTree = "<group>";
@@ -228,6 +231,7 @@
 				ORGANIZATIONNAME = Tilt;
 				TargetAttributes = {
 					38CF3642186D992300DA65AE = {
+						DevelopmentTeam = JTSFFH6DL8;
 						SystemCapabilities = {
 							com.apple.BackgroundModes = {
 								enabled = 1;
@@ -265,8 +269,9 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				389C81FA18733E77009B7025 /* Images.xcassets in Resources */,
+				389C81FC187341D7009B7025 /* StringResource.strings in Resources */,
 				38CF3651186D992300DA65AE /* InfoPlist.strings in Resources */,
-				38CF3659186D992300DA65AE /* Images.xcassets in Resources */,
 				38CF3676186D9A4B00DA65AE /* Tilt.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -408,10 +413,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Tilt/Tilt-Prefix.pch";
 				INFOPLIST_FILE = "Tilt/Tilt-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Debug;
@@ -421,10 +429,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = LaunchImage;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "Tilt/Tilt-Prefix.pch";
 				INFOPLIST_FILE = "Tilt/Tilt-Info.plist";
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				PROVISIONING_PROFILE = "";
 				WRAPPER_EXTENSION = app;
 			};
 			name = Release;

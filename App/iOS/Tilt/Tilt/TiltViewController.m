@@ -25,7 +25,7 @@
 @synthesize btnPlaySound;
 @synthesize btnShowLight;
 
-NSInteger const connectionTimeout = 2;
+NSInteger const connectionTimeout = 3;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -74,7 +74,6 @@ NSInteger const connectionTimeout = 2;
   
   // Start connection timer for connectionTimeout value
   [NSTimer scheduledTimerWithTimeInterval:(float)connectionTimeout target:self selector:@selector(connectionTimer:) userInfo:nil repeats:NO];
-  
 }
 
 - (IBAction)scanForTilt:(id)sender forEvent:(UIEvent *)event {
@@ -109,6 +108,12 @@ NSInteger const connectionTimeout = 2;
   }
   else {
     [btnConnect setTitle:@"Connect" forState:UIControlStateNormal];
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Oops!"
+                                                    message:@"Could not find your T/LT device nearby. Please try again when in range."
+                                                   delegate:nil
+                                          cancelButtonTitle:@"Dismiss"
+                                          otherButtonTitles:nil];
+    [alert show];
   }
 }
 

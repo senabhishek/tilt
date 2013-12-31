@@ -252,8 +252,7 @@ static int rssi = 0;
 {
   NSLog(@"printKnownPeripherals: List of currently known peripherals :");
   
-  for (int i = 0; i < self.peripherals.count; i++)
-  {
+  for (int i = 0; i < self.peripherals.count; i++) {
     CBPeripheral *p = [self.peripherals objectAtIndex:i];
     
     if (p.identifier != NULL) {
