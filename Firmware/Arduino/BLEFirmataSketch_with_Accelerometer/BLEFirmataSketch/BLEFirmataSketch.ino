@@ -61,6 +61,9 @@
 /*==============================================================================
  * GLOBAL VARIABLES
  *============================================================================*/
+/* interrupt status */
+volatile unsigned int int_status1 = 0;
+volatile unsigned int int_status2 = 0;
 
 /* analog inputs */
 int analogInputsToReport = 0; // bitwise array to store pin reporting
@@ -114,6 +117,56 @@ Servo servos[MAX_SERVOS];
 #define CTRL_REG4  0x2D
 #define CTRL_REG5  0x2E
 #define ASLP_COUNT  0x29
+
+// Iniitial values of Control Registers
+#define ASLP_12_5_HZ  0x40
+#define ODR_50_HZ  0x20 
+#define LNOISE_DEFAULT  0x00
+#define F_READ_DEFAULT  0x00
+
+#define SLPE  0x04  
+#define SMODS_LOW_POW  0x18
+#define MODS_NORMAL_POW  0x00
+#define ST_DEFAULT  0x00
+#define RST_DEFAULT  0x00
+
+
+#define WAKE_FF_MT  0x08
+#define WAKE_TRANS  0x40  
+#define IPOL_DEFAULT 0x00
+#define PP_OD_DEFAULT 0x00
+
+#define INT_EN_FF_MT  0x04
+#define INT_EN_TRANS  0x20
+#define INT_EN_ASLP  0x80
+
+#define INT_CFG_FF_MT  0x04
+#define INT_CFG_TRANS  0x20
+
+#define ASLP_COUNT_50_HZ_960_MS  0x03
+  
+#define ELE  0x80
+#define OAE_MOTION  0x40
+#define XYZ_EFE 0x18
+
+#define DBCNTM_MOTION  0x00
+#define THS_0_2_G  0x0B
+
+#define FF_MT_DEBOUNCE_50_HZ_20_MS  0x0A
+
+#define ELE  0x10
+#define XYZ_EFE 0x06
+#define HPF_BYP 0x00
+
+#define DBCNTM_TRANS  0x00 
+#define TRANS_THS_0_5_G  0x05
+
+#define TRANS_DEBOUNCE_50_HZ_20_MS  0x03
+
+//The SRC registers for clearing and reading status of interrupts
+#define SYSMOD 0x0B
+#define TRANSIENT_SRC 0x1E     
+#define FF_MT_SRC 0x16  
 
 // Motion Detection registers
 #define FF_MT_CFG  0x15
@@ -624,6 +677,22 @@ void disableI2CPins() {
 /*==============================================================================
  * SETUP()
  *============================================================================*/
+//Interrupt Service Routines
+void int0_bh()
+{
+//  byte val=0;
+//  readRegisters(INT_SOURCE, sizeof(byte), &val);
+//  int_status1 = (int)val;
+    int_status1=1;
+}
+
+void int1_bh()
+{
+//  byte val=0;
+//  readRegisters(INT_SOURCE, sizeof(byte), &val);
+//  int_status2 = (int)val;
+    int_status2=1;
+}
 
 void systemResetCallback()
 {
@@ -702,8 +771,15 @@ void setup()
   pinMode(10,OUTPUT);
   pinMode(9,OUTPUT);
   pinMode(3,OUTPUT);
+  pinMode(2,OUTPUT);  
+  
   Wire.begin(); //Join the bus as a master
   initMMA8452(); //Test and intialize the MMA8452  
+  
+  Serial.println("Attaching the interrupt lines");
+  attachInterrupt(0, int0_bh, CHANGE);
+  attachInterrupt(1, int1_bh, CHANGE);
+  Serial.println("Attaching interrupt lines was successful!!!");
 }
 
 void readAndSaveAccelValues()
@@ -829,26 +905,96 @@ void loop()
   //printAccelValues();
   byte val;
   readRegisters(INT_SOURCE, sizeof(byte), &val);
+#ifdef DEBUG
   if (val > 0) {
     printAccelValues();
     Serial.print("INT_SRC: ");
     Serial.println(val);
-    #define SYSMOD 0x0B
+ 
     readRegisters(SYSMOD, sizeof(byte), &val);
     Serial.print("SYSMOD: ");
     Serial.println(val);
-    #ifdef FF_MT_ENABLE
-      #define FF_MT_SRC 0x16    
+    
+    #ifdef FF_MT_ENABLE 
       readRegisters(FF_MT_SRC, sizeof(byte), &val);
       Serial.print("FF_MT_SRC: ");
       Serial.println(val);
     #else  
-      #define TRANSIENT_SRC 0x1E    
       readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
       Serial.print("TRANSIENT_SRC: ");
       Serial.println(val);
     #endif
   }
+#endif
+//     if(int_status1>0)
+//     {
+//      Serial.print("Interrupt status1: ");
+//      Serial.println(int_status1);
+//     }
+//     if(int_status2>0)
+//     {
+//      Serial.print("Interrupt status2: ");
+//      Serial.println(int_status2);
+//     }
+     if(int_status1>0)
+     {
+        readRegisters(INT_SOURCE, sizeof(byte), &val);
+        Serial.print("INT_SOURCE1: ");
+        Serial.println(val);
+        delay(50);
+        #ifdef FF_MT_ENABLE 
+          readRegisters(FF_MT_SRC, sizeof(byte), &val);
+          Serial.print("FF_MT_SRC: ");
+          Serial.println(val);
+        #else  
+          readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
+          Serial.print("TRANSIENT_SRC: ");
+          Serial.println(val);
+        delay(50);          
+        #endif
+        
+        readRegisters(INT_SOURCE, sizeof(byte), &val);
+        Serial.print("IIIIINT_SOURCE1: ");
+        Serial.println(val);
+        delay(50);
+       
+        readRegisters(CTRL_REG4, sizeof(byte), &val);
+        Serial.print("CTRL_REG4: ");
+        Serial.println(val);
+        delay(50);
+        
+        readRegisters(CTRL_REG5, sizeof(byte), &val);
+        Serial.print("CTRL_REG5: ");
+        Serial.println(val);
+        delay(50);  
+        readRegisters(XYZ_DATA_CFG, sizeof(byte), &val);
+        Serial.print("CTRL_REG5: ");
+        Serial.println(val);
+        delay(50);  
+        
+        
+        int_status1=0;
+     }
+     if(int_status2>0)
+     {
+       readRegisters(INT_SOURCE, sizeof(byte), &val);
+       Serial.print("INT_SOURCE2: ");
+       Serial.println(val);
+//        readRegisters(SYSMOD, sizeof(byte), &val);
+//        Serial.print("SYSMOD: ");
+//        Serial.println(val);  
+        int_status2=0;       
+        readRegisters(INT_SOURCE, sizeof(byte), &val);
+        Serial.print("IIIINT_SOURCE2: ");
+        Serial.println(val);        
+     }
+     
+//       readRegisters(INT_SOURCE, sizeof(byte), &val);
+//       if(val>0)
+//       {
+//         Serial.print("INT_SOURCE2: ");
+//         Serial.println(val);
+//       }
 }
 
 void readAccelData(int *destination)
@@ -900,76 +1046,43 @@ void initMMA8452()
   val >>= 2; // Neat trick, see page 22. 00 = 2G, 01 = 4A, 10 = 8G
   writeRegister(XYZ_DATA_CFG, val);
 
-  // Initialize Control Registers
-  #define ASLP_12_5_HZ  0x40
-  #define ODR_50_HZ  0x20 
-  #define LNOISE_DEFAULT  0x00
-  #define F_READ_DEFAULT  0x00
   val = (ASLP_12_5_HZ | ODR_50_HZ | LNOISE_DEFAULT | F_READ_DEFAULT);
   writeRegister(CTRL_REG1, val);
   
-  #define SLPE  0x04  
-  #define SMODS_LOW_POW  0x18
-  #define MODS_NORMAL_POW  0x00
-  #define ST_DEFAULT  0x00
-  #define RST_DEFAULT  0x00
   val = (ST_DEFAULT | RST_DEFAULT | SMODS_LOW_POW | SLPE | MODS_NORMAL_POW);
   writeRegister(CTRL_REG2, val);
 
-  #define WAKE_FF_MT  0x08
-  #define WAKE_TRANS  0x40  
-  #define IPOL_DEFAULT 0x00
-  #define PP_OD_DEFAULT 0x00
-  val = (WAKE_TRANS | IPOL_DEFAULT | PP_OD_DEFAULT);
+  val = (WAKE_TRANS | 0x02 | PP_OD_DEFAULT);
   writeRegister(CTRL_REG3, val);
   
-  #define INT_EN_FF_MT  0x04
-  #define INT_EN_TRANS  0x20
-  #define INT_EN_ASLP  0x80
-  val = (INT_EN_ASLP | INT_EN_TRANS);
-  writeRegister(CTRL_REG4, val);
-  
-  #define INT_CFG_FF_MT  0x04
-  #define INT_CFG_TRANS  0x20
-  val = INT_CFG_TRANS;
+  val = 0;
   writeRegister(CTRL_REG5, val);  
   
-  #define ASLP_COUNT_50_HZ_960_MS  0x03
   val = ASLP_COUNT_50_HZ_960_MS;
   writeRegister(ASLP_COUNT, val); 
  #ifdef FF_MT_ENABLED 
-    #define ELE  0x80
-    #define OAE_MOTION  0x40
-    #define XYZ_EFE 0x18
     val = (ELE | OAE_MOTION | XYZ_EFE);
     writeRegister(FF_MT_CFG, val);
     
-    #define DBCNTM_MOTION  0x00
-  //  #define THS_0_2_G  0x40
-    #define THS_0_2_G  0x0B
     val = (DBCNTM_MOTION | THS_0_2_G);
     writeRegister(FF_MT_THS, val);  
   
-    #define FF_MT_DEBOUNCE_50_HZ_20_MS  0x0A
     val = FF_MT_DEBOUNCE_50_HZ_20_MS;
     writeRegister(FF_MT_COUNT, val);  
   #else
-    #define ELE  0x10
-    #define XYZ_EFE 0x06
-    #define HPF_BYP 0x00
     val = (ELE | XYZ_EFE | HPF_BYP);
     writeRegister(TRANSIENT_CFG, val);
 
-    #define DBCNTM_TRANS  0x00 
-    #define TRANS_THS_0_5_G  0x05
     val = (DBCNTM_TRANS | TRANS_THS_0_5_G);
     writeRegister(TRANSIENT_THS, val);
     
-    #define TRANS_DEBOUNCE_50_HZ_20_MS  0x03
     val = TRANS_DEBOUNCE_50_HZ_20_MS;
     writeRegister(TRANSIENT_COUNT, val);    
   #endif
   //The default data rate is 800Hz and we don't modify it in this example code
+  
+  val = (INT_EN_TRANS);
+  writeRegister(CTRL_REG4, val);
 
   MMA8452Active();  // Set to active to start reading
 }
