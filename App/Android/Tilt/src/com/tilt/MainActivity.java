@@ -14,305 +14,339 @@ import android.widget.ToggleButton;
 
 
 public class MainActivity extends Activity {
-    int counter; 
-    Button bBlueTooth, bLight, bSound;
-	TextView display; 
-    
-	public final static String EXTRA_MESSAGE = "com.tilt.MESSAGE";
-//    private final static String TAG = SimpleControls.class.getSimpleName();
- 
- 	  private Button connectBtn = null;
-          private TextView rssiValue = null;
-          private TextView AnalogInValue = null;
-          private ToggleButton digitalOutBtn, digitalInBtn, AnalogInBtn;
-          private SeekBar servoSeekBar, PWMSeekBar;
-  
-          private BluetoothGattCharacteristic characteristicTx = null;
-  /*        private RBLService mBluetoothLeService;
-          private BluetoothAdapter mBluetoothAdapter;
-          private BluetoothDevice mDevice = null;
-          private String mDeviceAddress;
-  
-          private boolean flag = true;
-          private boolean connState = false;
-          private boolean scanFlag = false;
-  
-          private byte[] data = new byte[3];
-          private static final int REQUEST_ENABLE_BT = 1;
-          private static final long SCAN_PERIOD = 2000;
-  
-          private final ServiceConnection mServiceConnection = new ServiceConnection() {
-  
-                  @Override
-                  public void onServiceConnected(ComponentName componentName,
-                                  IBinder service) {
-                          mBluetoothLeService = ((RBLService.LocalBinder) service)
-                                         .getService();
-                         if (!mBluetoothLeService.initialize()) {
-                                 Log.e(TAG, "Unable to initialize Bluetooth");
-                                  finish();
-                          }
-                 }
-
-          @Override
-                  public void onServiceDisconnected(ComponentName componentName) {
-                          mBluetoothLeService = null;
-                  }
-          };
-  
-          private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+		int counter; 
+		Button bBlueTooth, bLight, bSound;
+		TextView display; 
+	
+		public final static String EXTRA_MESSAGE = "com.tilt.MESSAGE";
+		//    private final static String TAG = SimpleControls.class.getSimpleName();
+	 
+		private Button connectBtn = null;
+	    private TextView rssiValue = null;
+	    private TextView AnalogInValue = null;
+	    private ToggleButton digitalOutBtn, digitalInBtn, AnalogInBtn;
+	    private SeekBar servoSeekBar, PWMSeekBar;
+	  
+	    private BluetoothGattCharacteristic characteristicTx = null;
+	    private boolean toggleBlueTooth=false;
+	    /*        
+	    * private RBLService mBluetoothLeService;
+	    private BluetoothAdapter mBluetoothAdapter;
+	    private BluetoothDevice mDevice = null;
+	    private String mDeviceAddress;
+	  
+	    private boolean flag = true;
+	    private boolean connState = false;
+	    private boolean scanFlag = false;
+	  
+	    private byte[] data = new byte[3];
+	    private static final int REQUEST_ENABLE_BT = 1;
+	    private static final long SCAN_PERIOD = 2000;
+	  
+	    private final ServiceConnection mServiceConnection = new ServiceConnection() {
+	  
+		    	@Override
+		    	public void onServiceConnected(ComponentName componentName, IBinder service) 
+		    	{
+		        	mBluetoothLeService = ((RBLService.LocalBinder) service)
+		                                 .getService();
+		                 if (!mBluetoothLeService.initialize()) {
+		                         Log.e(TAG, "Unable to initialize Bluetooth");
+		                          finish();
+		                  }
+		         }
+		
+		  		@Override
+		        public void onServiceDisconnected(ComponentName componentName) 
+		        {
+		        	mBluetoothLeService = null;
+		        }
+		        
+		  }; //end final ServiceConnection
+	  
+	  
+	  
+	   private final BroadcastReceiver mGattUpdateReceiver = new BroadcastReceiver() {
+      
                   @Override
                   public void onReceive(Context context, Intent intent) {
                           final String action = intent.getAction();
   
-                          if (RBLService.ACTION_GATT_DISCONNECTED.equals(action)) {
-                                  Toast.makeText(getApplicationContext(), "Disconnected",
-                                                  Toast.LENGTH_SHORT).show();
+                          if (RBLService.ACTION_GATT_DISCONNECTED.equals(action)) 
+                          {
+                                  Toast.makeText(getApplicationContext(), "Disconnected",Toast.LENGTH_SHORT).show();
                                   setButtonDisable();
-                          } else if (RBLService.ACTION_GATT_SERVICES_DISCOVERED
-                                          .equals(action)) {
-                                  Toast.makeText(getApplicationContext(), "Connected",
-                                                  Toast.LENGTH_SHORT).show();
+                          }
+                          else if (RBLService.ACTION_GATT_SERVICES_DISCOVERED.equals(action))
+                           {
+                                  Toast.makeText(getApplicationContext(), "Connected",Toast.LENGTH_SHORT).show();
   
                                   getGattService(mBluetoothLeService.getSupportedGattService    ());
-                          } else if (RBLService.ACTION_DATA_AVAILABLE.equals(action)) {
+                                  
+                          } 
+                          else if (RBLService.ACTION_DATA_AVAILABLE.equals(action)) 
+                          {
                                   data = intent.getByteArrayExtra(RBLService.EXTRA_DATA);
   
                                   readAnalogInValue(data);
-                          } else if (RBLService.ACTION_GATT_RSSI.equals(action)) {
+                          } 
+                          else if (RBLService.ACTION_GATT_RSSI.equals(action)) 
+                          {
                                   displayData(intent.getStringExtra(RBLService.EXTRA_DATA));
                           }
-                  }
-        };
+                  } //end onReceive
+        }; //end BroadcastReceiver
 
-   */ 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
-        setContentView(R.layout.activity_main);
-        /*New  */
-        counter = 0; 
-        bBlueTooth = (Button) findViewById(R.id.button_bluetooth);
-        bLight = (Button) findViewById(R.id.button_light);
-        bSound = (Button) findViewById(R.id.button_sound);
-        display = (TextView) findViewById(R.id.dTitle);
+	     */ 
     
-        bLight.setEnabled(false);
-        bSound.setEnabled(false);
-        
-        
-        
-        /* set up onClickListener */
-        bBlueTooth.setOnClickListener(new View.OnClickListener() {
+	    
+	    
+	    
+	    @Override
+        protected void onCreate(Bundle savedInstanceState) 
+	    {
+		    	super.onCreate(savedInstanceState);
+		    	requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
+		    	setContentView(R.layout.activity_main);
+	        
+		    	/*New  */
+		    	counter = 0; 
+		        bBlueTooth = (Button) findViewById(R.id.button_bluetooth);
+		        bLight = (Button) findViewById(R.id.button_light);
+		        bSound = (Button) findViewById(R.id.button_sound);
+		        display = (TextView) findViewById(R.id.dTitle);
+		    
+		        bLight.setEnabled(false);
+		        bSound.setEnabled(false);
+		        
+		        
+		        
+		        /* set up onClickListener */
+		        bBlueTooth.setOnClickListener(new View.OnClickListener() {
+				
+		        	@Override
+		        	public void onClick(View v) 
+		        	{
+		        		// TODO Auto-generated method stub
+						/*counter ++;
+						display.setText("Your total is " + counter);
+				        bLight.setEnabled(true);
+				        bSound.setEnabled(true);
+						 */
+						toggleBlueTooth= !toggleBlueTooth;
+					    bLight.setEnabled(toggleBlueTooth);
+				        bSound.setEnabled(toggleBlueTooth);
+				
+		        	}
+		        });
+	        
+		        bLight.setOnClickListener(new View.OnClickListener() {
+				
+		        	@Override
+		        	public void onClick(View v) {
+		        		// TODO Auto-generated method stub
+		        		counter --;
+		        		display.setText("Your total is " + counter);
+		        	}
+		        });
+	        
+		        bSound.setOnClickListener(new View.OnClickListener() {
+				
+		        	@Override
+		        	public void onClick(View v) {
+		        		// TODO Auto-generated method stub
+		   				counter = counter *2 + 1;
+		   				display.setText("Your total is " + counter);
+		   			}
+		   		});
+	                
+	          
+	        
+		        /*New  end */
+	        
+	        
+	        
+		        //	getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
+		        /*
+				rssiValue = (TextView) findViewById(R.id.rssiValue);
+				AnalogInValue = (TextView) findViewById(R.id.AIText);
+				digitalInBtn = (ToggleButton) findViewById(R.id.DIntBtn);
+				connectBtn = (Button) findViewById(R.id.connect);
 			
-			@Override
-			public void onClick(View v) {
-				// TODO Auto-generated method stub
-				counter ++;
-				display.setText("Your total is " + counter);
-		        bLight.setEnabled(true);
-		        bSound.setEnabled(true);
-			}
-		});
-        
-        bLight.setOnClickListener(new View.OnClickListener() {
-			
-   			@Override
-   			public void onClick(View v) {
-   				// TODO Auto-generated method stub
-   				counter --;
-   				display.setText("Your total is " + counter);
-   			}
-   		});
-        
-        bSound.setOnClickListener(new View.OnClickListener() {
-			
-   			@Override
-   			public void onClick(View v) {
-   				// TODO Auto-generated method stub
-   				counter = counter *2 + 1;
-   				display.setText("Your total is " + counter);
-   			}
-   		});
-                
-        
-        
-        
-        
-        
-        
-        /*New  end */
-	//	getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
-/*
-		rssiValue = (TextView) findViewById(R.id.rssiValue);
+				connectBtn.setOnClickListener(new OnClickListener() {
 
-		AnalogInValue = (TextView) findViewById(R.id.AIText);
+					@Override
+					public void onClick(View v) 
+					{
+							if (scanFlag == false) 
+							{
+								scanLeDevice();
 
-		digitalInBtn = (ToggleButton) findViewById(R.id.DIntBtn);
+								Timer mTimer = new Timer();
+								mTimer.schedule(new TimerTask() {
 
-		connectBtn = (Button) findViewById(R.id.connect);
-		connectBtn.setOnClickListener(new OnClickListener() {
+									@Override
+									public void run() 
+									{
+											if (mDevice != null) {
+												mDeviceAddress = mDevice.getAddress();
+												mBluetoothLeService.connect(mDeviceAddress);
+												scanFlag = true;
+											} 
+											else {
+												runOnUiThread(new Runnable() {
+													public void run() {
+														Toast toast = Toast.makeText(
+															SimpleControls.this,
+															"Couldn't search Ble Shiled device!",
+															Toast.LENGTH_SHORT);
+														toast.setGravity(0, 0, Gravity.CENTER);
+														toast.show();
+													}
+												});
+											}
+									}
+								}, SCAN_PERIOD);
+							}
 
-			@Override
-			public void onClick(View v) {
-				if (scanFlag == false) {
-					scanLeDevice();
+							System.out.println(connState);
+							if (connState == false) {
+								mBluetoothLeService.connect(mDeviceAddress);
+							} else {
+								mBluetoothLeService.disconnect();
+								mBluetoothLeService.close();
+								setButtonDisable();
+							}
+					}
+				});
+				
+				
 
-					Timer mTimer = new Timer();
-					mTimer.schedule(new TimerTask() {
+				digitalOutBtn = (ToggleButton) findViewById(R.id.DOutBtn);
+				digitalOutBtn.setOnCheckedChangeListener(new OnCheckedChangeListener() {
 
 						@Override
-						public void run() {
-							if (mDevice != null) {
-								mDeviceAddress = mDevice.getAddress();
-								mBluetoothLeService.connect(mDeviceAddress);
-								scanFlag = true;
-							} else {
-								runOnUiThread(new Runnable() {
-									public void run() {
-										Toast toast = Toast
-												.makeText(
-														SimpleControls.this,
-														"Couldn't search Ble Shiled device!",
-														Toast.LENGTH_SHORT);
-										toast.setGravity(0, 0, Gravity.CENTER);
-										toast.show();
-									}
-								});
-							}
+						public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) 
+						{
+							byte buf[] = new byte[] { (byte) 0x01, (byte) 0x00, (byte) 0x00 };
+		
+							if (isChecked == true)
+								buf[1] = 0x01;
+							else
+								buf[1] = 0x00;
+		
+							characteristicTx.setValue(buf);
+							mBluetoothLeService.writeCharacteristic(characteristicTx);
 						}
-					}, SCAN_PERIOD);
+				});
+				
+				
+
+				AnalogInBtn = (ToggleButton) findViewById(R.id.AnalogInBtn);
+				AnalogInBtn.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+
+					@Override
+					public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) 
+					{
+						byte[] buf = new byte[] { (byte) 0xA0, (byte) 0x00, (byte) 0x00 };
+	
+						if (isChecked == true)
+							buf[1] = 0x01;
+						else
+							buf[1] = 0x00;
+	
+						characteristicTx.setValue(buf);
+						mBluetoothLeService.writeCharacteristic(characteristicTx);
+					}
+				});
+
+				servoSeekBar = (SeekBar) findViewById(R.id.ServoSeekBar);
+				servoSeekBar.setEnabled(false);
+				servoSeekBar.setMax(180);
+				servoSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+
+						@Override
+						public void onStopTrackingTouch(SeekBar seekBar) {
+		
+						}
+		
+						@Override
+						public void onStartTrackingTouch(SeekBar seekBar) {
+		
+						}
+		
+						
+						@Override
+						public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) 
+						{
+							byte[] buf = new byte[] { (byte) 0x03, (byte) 0x00, (byte) 0x00 };
+							buf[1] = (byte) servoSeekBar.getProgress();
+							characteristicTx.setValue(buf);
+							mBluetoothLeService.writeCharacteristic(characteristicTx);
+						}
+					
+				});
+
+				PWMSeekBar = (SeekBar) findViewById(R.id.PWMSeekBar);
+				PWMSeekBar.setEnabled(false);
+				PWMSeekBar.setMax(255);
+				
+				
+				PWMSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+
+						@Override
+						public void onStopTrackingTouch(SeekBar seekBar) {
+			
+						}
+			
+						@Override
+						public void onStartTrackingTouch(SeekBar seekBar) {
+			
+						}
+			
+						@Override
+						public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) 
+						{
+							byte[] buf = new byte[] { (byte) 0x02, (byte) 0x00, (byte) 0x00 };
+							buf[1] = (byte) PWMSeekBar.getProgress();
+							characteristicTx.setValue(buf);
+							mBluetoothLeService.writeCharacteristic(characteristicTx);
+						}
+				});
+		
+				if (!getPackageManager().hasSystemFeature(
+						PackageManager.FEATURE_BLUETOOTH_LE)) {
+					Toast.makeText(this, "Ble not supported", Toast.LENGTH_SHORT)
+							.show();
+					finish();
 				}
 
-				System.out.println(connState);
-				if (connState == false) {
-					mBluetoothLeService.connect(mDeviceAddress);
-				} else {
-					mBluetoothLeService.disconnect();
-					mBluetoothLeService.close();
-					setButtonDisable();
+				final BluetoothManager mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
+				mBluetoothAdapter = mBluetoothManager.getAdapter();
+				
+				if (mBluetoothAdapter == null) 
+				{
+					Toast.makeText(this, "Ble not supported", Toast.LENGTH_SHORT).show();
+					finish();
+					return;
 				}
-			}
-		});
 
-		digitalOutBtn = (ToggleButton) findViewById(R.id.DOutBtn);
-		digitalOutBtn.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-				byte buf[] = new byte[] { (byte) 0x01, (byte) 0x00, (byte) 0x00 };
-
-				if (isChecked == true)
-					buf[1] = 0x01;
-				else
-					buf[1] = 0x00;
-
-				characteristicTx.setValue(buf);
-				mBluetoothLeService.writeCharacteristic(characteristicTx);
-			}
-		});
-
-		AnalogInBtn = (ToggleButton) findViewById(R.id.AnalogInBtn);
-		AnalogInBtn.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-				byte[] buf = new byte[] { (byte) 0xA0, (byte) 0x00, (byte) 0x00 };
-
-				if (isChecked == true)
-					buf[1] = 0x01;
-				else
-					buf[1] = 0x00;
-
-				characteristicTx.setValue(buf);
-				mBluetoothLeService.writeCharacteristic(characteristicTx);
-			}
-		});
-
-		servoSeekBar = (SeekBar) findViewById(R.id.ServoSeekBar);
-		servoSeekBar.setEnabled(false);
-		servoSeekBar.setMax(180);
-		servoSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-
-			}
-
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-
-			}
-
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
-				byte[] buf = new byte[] { (byte) 0x03, (byte) 0x00, (byte) 0x00 };
-
-				buf[1] = (byte) servoSeekBar.getProgress();
-
-				characteristicTx.setValue(buf);
-				mBluetoothLeService.writeCharacteristic(characteristicTx);
-			}
-		});
-
-		PWMSeekBar = (SeekBar) findViewById(R.id.PWMSeekBar);
-		PWMSeekBar.setEnabled(false);
-		PWMSeekBar.setMax(255);
-		PWMSeekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-
-			}
-
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-
-			}
-
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
-				byte[] buf = new byte[] { (byte) 0x02, (byte) 0x00, (byte) 0x00 };
-
-				buf[1] = (byte) PWMSeekBar.getProgress();
-
-				characteristicTx.setValue(buf);
-				mBluetoothLeService.writeCharacteristic(characteristicTx);
-			}
-		});
-
-		if (!getPackageManager().hasSystemFeature(
-				PackageManager.FEATURE_BLUETOOTH_LE)) {
-			Toast.makeText(this, "Ble not supported", Toast.LENGTH_SHORT)
-					.show();
-			finish();
-		}
-
-		final BluetoothManager mBluetoothManager = (BluetoothManager) getSystemService(Context.BLUETOOTH_SERVICE);
-		mBluetoothAdapter = mBluetoothManager.getAdapter();
-		if (mBluetoothAdapter == null) {
-			Toast.makeText(this, "Ble not supported", Toast.LENGTH_SHORT)
-					.show();
-			finish();
-			return;
-		}
-
-		Intent gattServiceIntent = new Intent(SimpleControls.this,
-				RBLService.class);
-		bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
+				Intent gattServiceIntent = new Intent(SimpleControls.this,RBLService.class);
+				bindService(gattServiceIntent, mServiceConnection, BIND_AUTO_CREATE);
 
 */
 
 
-    }//end onCreate
+       }//end onCreate
 
 
 	/* 
+	 
+	 
+	 
+	 
+	 
 	 
 	@Override
 	protected void onResume() {
@@ -541,25 +575,25 @@ public class MainActivity extends Activity {
     /*Methods for buttons */
     
     //bluetooth method
-    public void toggle_bluetooth(View view){
+   /* public void toggle_bluetooth(View view){
     	
     //Intent intent = new Intent(this, Bluetooth.class);	
     	
     
     }//end toggle_bluetooth
-    
+  */  
     //light method 
-    public void toggle_light(View view){
+    /*public void toggle_light(View view){
     	
     	
     	
     }//end toggle_light
-    
-    //sound method
+ */   
+/*    //sound method
     public void ring_sound(View view){
     	
     	
     	
     }//end ring_sound
-    
+  */  
 }//end MainActivity 
