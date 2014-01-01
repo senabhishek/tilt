@@ -1,0 +1,70 @@
+									
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="fill_parent" 
+    android:layout_height="fill_parent"
+    android:background="#FFFFFF" 
+    android:paddingLeft="16dp"
+    android:paddingRight="16dp"
+    android:orientation="vertical" >
+   
+  <!--  <EditText android:id="@+id/edit_message"
+		android:layout_weight="1"
+		android:layout_width="0dp"
+		android:layout_height="wrap_content"
+		android:hint="@string/edit_message"/>
+-->		<!-- Tilt is what you have been missing" -->
+<!--    
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/button_send" 
+    	android:onClick="sendMessage" />
+ 
+    <Button
+        android:id="@+id/button1"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+     android:layout_margin="24dp"
+        android:text="Button" />
+ -->
+ 
+    <TextView 
+        	android:layout_width="wrap_content"
+        	android:layout_height="wrap_content"
+        	android:text="Your total is 0"
+        	android:textSize="45px"
+        	android:id="@+id/dTitle"
+        	></TextView> 
+    <Button
+        android:id="@+id/button_bluetooth"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="24dp"
+        android:text="@string/button_bluetooth" 
+        android:onClick="@string/toggle_bluetooth"/>
+      <Button
+        android:id="@+id/button_light"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+            android:layout_margin="24dp"
+        android:text="@string/button_light" 
+        android:onClick="@string/toggle_light"/>
+      <Button
+          android:id="@+id/button_sound"
+          android:layout_width="fill_parent"
+          android:layout_height="wrap_content"
+          android:layout_margin="24dp"
+          android:text="@string/button_sound"
+          android:onClick="@string/ring_sound"/>
+      
+      
+
+    
+      
+      
+      
+ 
+      
+</LinearLayout>
+
