@@ -200,6 +200,7 @@ static int rssi = 0;
   
   [NSTimer scheduledTimerWithTimeInterval:(float)timeout target:self selector:@selector(scanTimer:) userInfo:nil repeats:NO];
   [CM scanForPeripheralsWithServices:serviceUUIDs options:nil];
+
   NSLog(@"scanForPeripheralsWithServices");
   return 0; // Started scanning OK !
 }

@@ -14,6 +14,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *btnConnect;
 @property (weak, nonatomic) IBOutlet UIButton *btnPlaySound;
 @property (weak, nonatomic) IBOutlet UIButton *btnShowLight;
+@property (weak, nonatomic) IBOutlet UILabel *lblRSSI;
 @property (strong, nonatomic) BLE *ble;
 
 @end
@@ -24,7 +25,7 @@
 @synthesize btnConnect;
 @synthesize btnPlaySound;
 @synthesize btnShowLight;
-
+@synthesize lblRSSI;
 NSInteger const connectionTimeout = 3;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
@@ -49,6 +50,56 @@ NSInteger const connectionTimeout = 3;
 {
   [super didReceiveMemoryWarning];
   // Dispose of any resources that can be recreated.
+}
+
+#pragma mark - BLE delegate
+
+NSTimer *rssiTimer;
+
+- (void)bleDidDisconnect
+{
+  NSLog(@"->Disconnected");
+  
+  [btnConnect setTitle:@"Connect" forState:UIControlStateNormal];
+  
+  lblRSSI.text = @"---"; 
+  [rssiTimer invalidate];
+}
+
+// When RSSI is changed, this will be called
+-(void) bleDidUpdateRSSI:(NSNumber *) rssi
+{
+  lblRSSI.text = [[NSString alloc] initWithFormat:@"RSSI: %@", rssi.stringValue];
+}
+
+-(void) readRSSITimer:(NSTimer *)timer
+{
+  [ble readRSSI];
+}
+
+// When disconnected, this will be called
+-(void) bleDidConnect
+{
+  NSLog(@"->Connected");
+  
+  // send reset
+  UInt8 buf[] = {0x04, 0x00, 0x00};
+  NSData *data = [[NSData alloc] initWithBytes:buf length:3];
+  [ble write:data];
+  
+  // Schedule to read RSSI every 1 sec.
+  rssiTimer = [NSTimer scheduledTimerWithTimeInterval:(float)1.0 target:self selector:@selector(readRSSITimer:) userInfo:nil repeats:YES];
+}
+
+// When data is comming, this will be called
+- (void)bleDidReceiveData:(unsigned char *)data length:(int)length
+{
+  NSLog(@"bleDidReceiveData: Length: %d", length);
+  
+  // parse data, all commands are in 3-byte
+  for (int i = 0; i < length; i+=3) {
+    NSLog(@"0x%02X, 0x%02X, 0x%02X", data[i], data[i+1], data[i+2]);
+  }
 }
 
 - (void)initiateConnection
