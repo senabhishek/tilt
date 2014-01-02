@@ -27,6 +27,8 @@
 @synthesize btnShowLight;
 @synthesize lblRSSI;
 NSInteger const connectionTimeout = 3;
+BOOL lightVal = FALSE;
+BOOL soundVal = FALSE;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -133,15 +135,26 @@ NSTimer *rssiTimer;
 
 - (IBAction)playSoundToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {0x01, 0x00, 0x00};
-  buf[1] = 0x01;
+  UInt8 buf[3] = {0x01, 0x00 , 0x00};
+  if (soundVal == FALSE) {
+    buf[1] = 0x01;
+    soundVal = TRUE;
+  } else {
+    soundVal = FALSE;
+  }
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
 }
 
 - (IBAction)showLightToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {0x02, 0xFF, 0xFF};
+  UInt8 buf[3] = {0x00, 0x00 , 0x00};
+  if (lightVal == FALSE) {
+    buf[1] = 0x01;  
+    lightVal = TRUE;
+  } else {
+    lightVal = FALSE;
+  }
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
 }
