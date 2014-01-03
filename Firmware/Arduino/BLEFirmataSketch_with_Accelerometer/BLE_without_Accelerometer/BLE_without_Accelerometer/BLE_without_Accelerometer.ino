@@ -102,6 +102,12 @@ Servo servos[MAX_SERVOS];
 #define DIGITAL_OUT_PIN    4
 #define DIGITAL_IN_PIN     5
 #define PWM_PIN            6
+#define PWM_LEVEL_HIGH     127
+#define PWM_LEVEL_LOW      0
+boolean lightVal = false;
+boolean soundVal = false;
+char *welcomeString = "Welcome to T/LT!";
+
 /*==============================================================================
  * GLOBAL VARIABLES ACCELEROMETER
  *============================================================================*/
@@ -847,8 +853,29 @@ boolean monitorAccelData()
    return triggerAlarm;
 }
 
-#define PWM_LEVEL_HIGH  127
-#define PWM_LEVEL_LOW  0
+void resetPins()
+{
+  analogWrite(PWM_PIN, PWM_LEVEL_LOW);
+  digitalWrite(DIGITAL_OUT_PIN, LOW);
+}
+
+void handleShowLightCmd(byte value)
+{
+  (value == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);  
+}
+
+void handlePlaySoundCmd(byte value)
+{
+  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+}
+
+void sendWelcomeMsg()
+{
+  ble_write(0x00);
+  for (int i = 0; i < strlen(welcomeString); i++) {
+    ble_write(welcomeString[i]);  
+  }       
+}
 
 /*==============================================================================
  * LOOP()
@@ -860,7 +887,7 @@ void loop()
   // Byte 1: Command Value
 
   while (ble_available()) {
-    // read out command and data
+    // Read out command and data
     byte data0 = ble_read();
     byte data1 = ble_read();
     byte data2 = ble_read();
@@ -868,16 +895,23 @@ void loop()
     switch (data0) {
       case 0x00:
         // Turn on/off light
-        (data1 == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);
+        handleShowLightCmd(data1);
         break;
       
       case 0x01:
-        (data1 == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);      
+        // Turn on/off sound
+        handlePlaySoundCmd(data1);        
         break;
       
       case 0x02:
+        // Reset PINs. Sent from device upon connection. Also send a welcome message.
+        resetPins();      
+        sendWelcomeMsg();
         break;
       
+      case 0x04:
+        break;
+        
       default:
         break;  
     }

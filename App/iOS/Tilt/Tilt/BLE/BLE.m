@@ -11,13 +11,12 @@
 @synthesize activePeripheral;
 @synthesize services;
 @synthesize serviceUUIDs;
+@synthesize currentRSSI;
 
 static BLE *bleSingleton;
-static bool isConnected = false;
-static int rssi = 0;
+static BOOL isConnected = false;
 
-
-+(BLE*)getInstance
++ (BLE*)getInstance
 {
   if (bleSingleton == nil) {
     bleSingleton = [[BLE alloc] init];
@@ -183,13 +182,6 @@ static int rssi = 0;
   [p writeValue:data forCharacteristic:characteristic type:CBCharacteristicWriteWithoutResponse];
 }
 
-- (UInt16)swap:(UInt16)s
-{
-  UInt16 temp = s << 8;
-  temp |= (s >> 8);
-  return temp;
-}
-
 - (int)findBLEPeripherals:(int)timeout
 {
   if (self.CM.state != CBCentralManagerStatePoweredOn) {
@@ -207,7 +199,6 @@ static int rssi = 0;
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error;
 {
-  done = false;
   [delegate bleDidDisconnect];
   isConnected = false;
 }
@@ -220,6 +211,174 @@ static int rssi = 0;
   activePeripheral.delegate = self;
   [CM connectPeripheral:activePeripheral
                      options:[NSDictionary dictionaryWithObject:[NSNumber numberWithBool:YES] forKey:CBConnectPeripheralOptionNotifyOnDisconnectionKey]];
+}
+
+- (void)scanTimer:(NSTimer *)timer
+{
+  [CM stopScan];
+  NSLog(@"scanTimer: Stopped Scanning. Known peripherals : %lu", (unsigned long)[self.peripherals count]);
+  [self printKnownPeripherals];
+}
+
+- (void)getAllServicesFromPeripheral:(CBPeripheral *)p
+{
+  [p discoverServices:serviceUUIDs];
+}
+
+- (void)getAllCharacteristicsFromPeripheral:(CBPeripheral *)p
+{
+  for (int i=0; i < p.services.count; i++) {
+    CBService *s = [p.services objectAtIndex:i];
+    [p discoverCharacteristics:nil forService:s];
+  }
+}
+
+# pragma CoreBluetooth routine handlers
+
+- (void)centralManagerDidUpdateState:(CBCentralManager *)central
+{
+  NSLog(@"centralManagerDidUpdateState: Status of CoreBluetooth central manager changed %ld (%s) - BT state %d", central.state, [self centralManagerStateToString:central.state], isConnected);
+  
+  // Try to autoconnect if we're not connected and the CB state just changed to CBCentralManagerStatePoweredOn
+  if (!isConnected && central.state == CBCentralManagerStatePoweredOn) {
+    [delegate bleDidChangedStateToPoweredOn];
+  }
+}
+
+- (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
+{
+  if (!peripherals) {
+    peripherals = [[NSMutableArray alloc] initWithObjects:peripheral, nil];
+  }
+  else {
+    for (int i = 0; i < peripherals.count; i++) {
+      CBPeripheral *p = [peripherals objectAtIndex:i];
+      
+      if ((p.identifier == NULL) || (peripheral.identifier == NULL)) continue;
+      
+      if ([self UUIDSAreEqual:p.identifier UUID2:peripheral.identifier]) {
+        [peripherals replaceObjectAtIndex:i withObject:peripheral];
+        NSLog(@"centralManager:didDiscoverPeripheral: Duplicate UUID found updating...");
+        return;
+      }
+    }
+    
+    [peripherals addObject:peripheral];
+    NSLog(@"centralManager:centralManager:didDiscoverPeripheral: New UUID, adding");
+  }
+  
+  NSLog(@"centralManager:didDiscoverPeripheral");
+}
+
+- (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
+{
+  if (peripheral.identifier != NULL) {
+    NSLog(@"Connected to %@ successful", peripheral.identifier.UUIDString);
+  } else {
+    NSLog(@"Connected to NULL successful");
+  }
+  
+  activePeripheral = peripheral;
+  [activePeripheral discoverServices:nil];
+  [self getAllServicesFromPeripheral:peripheral];
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
+{
+  if (!error) {
+    for (int i=0; i < service.characteristics.count; i++) {
+      CBService *s = [peripheral.services objectAtIndex:(peripheral.services.count - 1)];
+      if ([service.UUID isEqual:s.UUID]) {
+        if (!isConnected) {
+          [self enableReadNotification:activePeripheral];
+          [delegate bleDidConnect];
+          isConnected = true;
+        }
+        break;
+      }
+    }
+  } else {
+    NSLog(@"peripheral:didDiscoverCharacteristicsForService Characteristic discorvery unsuccessful!");
+  }
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error
+{
+  if (!error) {
+    [self getAllCharacteristicsFromPeripheral:peripheral];
+  } else {
+    NSLog(@"peripheral:didDiscoverServices: Service discovery was unsuccessful!");
+  }
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
+{
+  if (!error) {
+    //        printf("Updated notification state for characteristic with UUID %s on service with  UUID %s on peripheral with UUID %s\r\n",[self CBUUIDToString:characteristic.UUID],[self CBUUIDToString:characteristic.service.UUID],[self UUIDToString:peripheral.UUID]);
+  } else {
+    NSLog(@"peripheral:didUpdateNotificationStateForCharacteristic: Error in setting notification state for characteristic with UUID %@ on service with UUID %@ on peripheral with UUID %@",
+          [self CBUUIDToString:characteristic.UUID],
+          [self CBUUIDToString:characteristic.service.UUID],
+          peripheral.identifier.UUIDString);
+    
+    NSLog(@"peripheral:didUpdateNotificationStateForCharacteristic: Error code was %s", [[error description] cStringUsingEncoding:NSStringEncodingConversionAllowLossy]);
+  }
+}
+
+- (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
+{
+  unsigned char data[20];
+  static unsigned char buf[512];
+  static int len = 0;
+  NSInteger data_len;
+  
+  if (!error) {
+    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@RBL_CHAR_TX_UUID]]) {
+      data_len = characteristic.value.length;
+      [characteristic.value getBytes:data length:data_len];
+      
+      if (data_len == 20) {
+        memcpy(&buf[len], data, 20);
+        len += data_len;
+        
+        if (len >= 64) {
+          [delegate bleDidReceiveData:buf length:len];
+          len = 0;
+        }
+      } else if (data_len < 20) {
+        memcpy(&buf[len], data, data_len);
+        len += data_len;
+        
+        [delegate bleDidReceiveData:buf length:len];
+        len = 0;
+      }
+    }
+  } else {
+    NSLog(@"peripheral: updateValueForCharacteristic failed!");
+  }
+}
+
+- (void)peripheralDidUpdateRSSI:(CBPeripheral *)peripheral error:(NSError *)error
+{
+  if (!isConnected) {
+    NSLog(@"peripheralDidUpdateRSSI: Not Connected");
+    return;
+  }
+  
+  if (currentRSSI != peripheral.RSSI)
+  {
+    currentRSSI = peripheral.RSSI;
+    [delegate bleDidUpdateRSSI:activePeripheral.RSSI];
+  }
+}
+
+# pragma Utility functions
+
+- (UInt16)swap:(UInt16)s
+{
+  UInt16 temp = s << 8;
+  temp |= (s >> 8);
+  return temp;
 }
 
 - (const char *)centralManagerStateToString:(int)state
@@ -240,13 +399,6 @@ static int rssi = 0;
     default:
       return "State unknown";
   }
-}
-
-- (void)scanTimer:(NSTimer *)timer
-{
-  [CM stopScan];
-  NSLog(@"scanTimer: Stopped Scanning. Known peripherals : %lu", (unsigned long)[self.peripherals count]);
-  [self printKnownPeripherals];
 }
 
 - (void)printKnownPeripherals
@@ -286,19 +438,6 @@ static int rssi = 0;
 - (BOOL)UUIDSAreEqual:(NSUUID *)UUID1 UUID2:(NSUUID *)UUID2
 {
   return ([UUID1.UUIDString isEqualToString:UUID2.UUIDString]);
-}
-
-- (void)getAllServicesFromPeripheral:(CBPeripheral *)p
-{
-  [p discoverServices:serviceUUIDs];
-}
-
-- (void)getAllCharacteristicsFromPeripheral:(CBPeripheral *)p
-{
-  for (int i=0; i < p.services.count; i++) {
-    CBService *s = [p.services objectAtIndex:i];
-    [p discoverCharacteristics:nil forService:s];
-  }
 }
 
 - (int)compareCBUUID:(CBUUID *) UUID1 UUID2:(CBUUID *)UUID2
@@ -356,141 +495,6 @@ static int rssi = 0;
   }
   
   return nil; //Characteristic not found on this service
-}
-
-- (void)centralManagerDidUpdateState:(CBCentralManager *)central
-{
-  NSLog(@"centralManagerDidUpdateState: Status of CoreBluetooth central manager changed %ld (%s)", central.state, [self centralManagerStateToString:central.state]);
-}
-
-- (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
-{
-  if (!peripherals) {
-    peripherals = [[NSMutableArray alloc] initWithObjects:peripheral, nil];
-  }
-  else {
-    for (int i = 0; i < peripherals.count; i++) {
-      CBPeripheral *p = [peripherals objectAtIndex:i];
-      
-      if ((p.identifier == NULL) || (peripheral.identifier == NULL)) continue;
-      
-      if ([self UUIDSAreEqual:p.identifier UUID2:peripheral.identifier]) {
-        [peripherals replaceObjectAtIndex:i withObject:peripheral];
-        NSLog(@"centralManager:didDiscoverPeripheral: Duplicate UUID found updating...");
-        return;
-      }
-    }
-      
-    [peripherals addObject:peripheral];
-    NSLog(@"centralManager:centralManager:didDiscoverPeripheral: New UUID, adding");
-  }
-    
-  NSLog(@"centralManager:didDiscoverPeripheral");
-}
-
-- (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
-{
-  if (peripheral.identifier != NULL) {
-    NSLog(@"Connected to %@ successful", peripheral.identifier.UUIDString);
-  } else {
-    NSLog(@"Connected to NULL successful");
-  }
-
-  activePeripheral = peripheral;
-  [activePeripheral discoverServices:nil];
-  [self getAllServicesFromPeripheral:peripheral];
-}
-
-static bool done = false;
-
-- (void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
-{
-  if (!error) {
-    for (int i=0; i < service.characteristics.count; i++) {
-      CBService *s = [peripheral.services objectAtIndex:(peripheral.services.count - 1)];
-      if ([service.UUID isEqual:s.UUID]) {
-        if (!done) {
-          [self enableReadNotification:activePeripheral];
-          [delegate bleDidConnect];
-          isConnected = true;
-          done = true;
-        }
-        break;
-      }
-    }
-  } else {
-    NSLog(@"peripheral:didDiscoverCharacteristicsForService Characteristic discorvery unsuccessful!");
-  }
-}
-
-- (void)peripheral:(CBPeripheral *)peripheral didDiscoverServices:(NSError *)error
-{
-  if (!error) {
-    [self getAllCharacteristicsFromPeripheral:peripheral];
-  } else {
-    NSLog(@"peripheral:didDiscoverServices: Service discovery was unsuccessful!");
-  }
-}
-
-- (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
-{
-  if (!error) {
-      //        printf("Updated notification state for characteristic with UUID %s on service with  UUID %s on peripheral with UUID %s\r\n",[self CBUUIDToString:characteristic.UUID],[self CBUUIDToString:characteristic.service.UUID],[self UUIDToString:peripheral.UUID]);
-  } else {
-    NSLog(@"peripheral:didUpdateNotificationStateForCharacteristic: Error in setting notification state for characteristic with UUID %@ on service with UUID %@ on peripheral with UUID %@",
-           [self CBUUIDToString:characteristic.UUID],
-           [self CBUUIDToString:characteristic.service.UUID],
-           peripheral.identifier.UUIDString);
-    
-    NSLog(@"peripheral:didUpdateNotificationStateForCharacteristic: Error code was %s", [[error description] cStringUsingEncoding:NSStringEncodingConversionAllowLossy]);
-  }
-}
-
-- (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
-{
-  unsigned char data[20];
-  static unsigned char buf[512];
-  static int len = 0;
-  NSInteger data_len;
-  
-  if (!error) {
-    if ([characteristic.UUID isEqual:[CBUUID UUIDWithString:@RBL_CHAR_TX_UUID]]) {
-      data_len = characteristic.value.length;
-      [characteristic.value getBytes:data length:data_len];
-      
-      if (data_len == 20) {
-        memcpy(&buf[len], data, 20);
-        len += data_len;
-        
-        if (len >= 64) {
-          [[self delegate] bleDidReceiveData:buf length:len];
-          len = 0;
-        }
-      } else if (data_len < 20) {
-        memcpy(&buf[len], data, data_len);
-        len += data_len;
-        
-        [[self delegate] bleDidReceiveData:buf length:len];
-        len = 0;
-      }
-    }
-  } else {
-    NSLog(@"peripheral: updateValueForCharacteristic failed!");
-  }
-}
-
-- (void)peripheralDidUpdateRSSI:(CBPeripheral *)peripheral error:(NSError *)error
-{
-  if (!isConnected) {
-    NSLog(@"peripheralDidUpdateRSSI: Not Connected");
-    return;
-  }
-  
-  if (rssi != peripheral.RSSI.intValue)
-  {
-    rssi = peripheral.RSSI.intValue;
-    [delegate bleDidUpdateRSSI:activePeripheral.RSSI];
-  }
 }
 
 @end

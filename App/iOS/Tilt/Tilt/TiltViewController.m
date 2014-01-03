@@ -8,6 +8,7 @@
 
 #import "TiltViewController.h"
 #import "BLE.h"
+#import "BLEDefines.h"
 
 @interface TiltViewController ()
 
@@ -16,6 +17,7 @@
 @property (weak, nonatomic) IBOutlet UIButton *btnShowLight;
 @property (weak, nonatomic) IBOutlet UILabel *lblRSSI;
 @property (strong, nonatomic) BLE *ble;
+@property (weak, nonatomic) IBOutlet UILabel *lblConnectBtn;
 
 @end
 
@@ -26,6 +28,7 @@
 @synthesize btnPlaySound;
 @synthesize btnShowLight;
 @synthesize lblRSSI;
+@synthesize lblConnectBtn;
 NSInteger const connectionTimeout = 3;
 BOOL lightVal = FALSE;
 BOOL soundVal = FALSE;
@@ -45,7 +48,6 @@ BOOL soundVal = FALSE;
   ble.delegate = self;
   [btnShowLight setEnabled:NO];
   [btnPlaySound setEnabled:NO];
-  [self initiateConnection];
 }
 
 - (void)didReceiveMemoryWarning
@@ -61,17 +63,17 @@ NSTimer *rssiTimer;
 - (void)bleDidDisconnect
 {
   NSLog(@"->Disconnected");
-  
-  [btnConnect setTitle:@"Connect" forState:UIControlStateNormal];
-  
-  lblRSSI.text = @"---"; 
+  lblConnectBtn.text = @"Connect";
+  lblRSSI.text = @"";
+  [btnShowLight setEnabled:NO];
+  [btnPlaySound setEnabled:NO];
   [rssiTimer invalidate];
 }
 
 // When RSSI is changed, this will be called
 -(void) bleDidUpdateRSSI:(NSNumber *) rssi
 {
-  lblRSSI.text = [[NSString alloc] initWithFormat:@"RSSI: %@", rssi.stringValue];
+  lblRSSI.text = [[NSString alloc] initWithFormat:@"RSSI: %@ dB", rssi.stringValue];
 }
 
 -(void) readRSSITimer:(NSTimer *)timer
@@ -83,9 +85,11 @@ NSTimer *rssiTimer;
 -(void) bleDidConnect
 {
   NSLog(@"->Connected");
+  lblConnectBtn.text = @"Disconnect";
+  lblRSSI.text = @"";
   
-  // send reset
-  UInt8 buf[] = {0x04, 0x00, 0x00};
+  // Send reset
+  UInt8 buf[] = {kResetPins, 0x00, 0x00};
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
   
@@ -93,15 +97,38 @@ NSTimer *rssiTimer;
   rssiTimer = [NSTimer scheduledTimerWithTimeInterval:(float)1.0 target:self selector:@selector(readRSSITimer:) userInfo:nil repeats:YES];
 }
 
-// When data is comming, this will be called
+// When data is coming, this will be called
 - (void)bleDidReceiveData:(unsigned char *)data length:(int)length
 {
-  NSLog(@"bleDidReceiveData: Length: %d", length);
+  BleCmdTiltToPhone cmdId = (BleCmdTiltToPhone)data[0];
+  unsigned char *rcvdData = data;
+  NSLog(@"bleDidReceiveData: cmd %lu length: %d", cmdId, length);
   
-  // parse data, all commands are in 3-byte
-  for (int i = 0; i < length; i+=3) {
-    NSLog(@"0x%02X, 0x%02X, 0x%02X", data[i], data[i+1], data[i+2]);
+  rcvdData++;
+  switch (cmdId) {
+    case kGeneralMsg:
+      {
+        NSString *rcvdMsg = [[NSString alloc] initWithCString:rcvdData encoding:NSASCIIStringEncoding];
+        UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
+                                                        message:rcvdMsg
+                                                       delegate:nil
+                                              cancelButtonTitle:@"OK"
+                                              otherButtonTitles:nil];
+        [alert show];
+      }
+      break;
+    default:
+      break;
   }
+  // parse data, all commands are in 3-byte
+//  for (int i = 0; i < length; i+=3) {
+//    NSLog(@"0x%02X, 0x%02X, 0x%02X", data[i], data[i+1], data[i+2]);
+//  }
+}
+
+- (void)bleDidChangedStateToPoweredOn
+{
+  [self initiateConnection];
 }
 
 - (void)initiateConnection
@@ -110,7 +137,7 @@ NSTimer *rssiTimer;
   if (ble.activePeripheral) {
     if (ble.activePeripheral.state == CBPeripheralStateConnected) {
       [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
-      [btnConnect setTitle:@"Connect" forState:UIControlStateNormal];
+      lblConnectBtn.text = @"Connect";
       return;
     }
   }
@@ -121,6 +148,7 @@ NSTimer *rssiTimer;
   }
   
   [btnConnect setEnabled:false];
+  lblConnectBtn.text = @"Connecting ...";
   
   // Try to find peripherals for the next 2 seconds
   [ble findBLEPeripherals:connectionTimeout];
@@ -135,9 +163,9 @@ NSTimer *rssiTimer;
 
 - (IBAction)playSoundToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {0x01, 0x00 , 0x00};
+  UInt8 buf[3] = {kPlaySound, 0x00 , 0x00};
   if (soundVal == FALSE) {
-    buf[1] = 0x01;
+    buf[1] = TRUE;
     soundVal = TRUE;
   } else {
     soundVal = FALSE;
@@ -148,9 +176,9 @@ NSTimer *rssiTimer;
 
 - (IBAction)showLightToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {0x00, 0x00 , 0x00};
+  UInt8 buf[3] = {kTurnOnLight, 0x00 , 0x00};
   if (lightVal == FALSE) {
-    buf[1] = 0x01;  
+    buf[1] = TRUE;
     lightVal = TRUE;
   } else {
     lightVal = FALSE;
@@ -159,19 +187,20 @@ NSTimer *rssiTimer;
   [ble write:data];
 }
 
-
 - (void)connectionTimer:(NSTimer *)timer
 {
   [btnConnect setEnabled:true];
-  [btnConnect setTitle:@"Disconnect" forState:UIControlStateNormal];
   
   if (ble.peripherals.count > 0) {
-    [ble connectPeripheral:[ble.peripherals objectAtIndex:0]];
+    lblConnectBtn.text = @"Disconnect";
     [btnShowLight setEnabled:YES];
     [btnPlaySound setEnabled:YES];
+    [ble connectPeripheral:[ble.peripherals objectAtIndex:0]];
   }
   else {
-    [btnConnect setTitle:@"Connect" forState:UIControlStateNormal];
+    lblConnectBtn.text = @"Connect";
+    [btnShowLight setEnabled:NO];
+    [btnPlaySound setEnabled:NO];
     UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Oops!"
                                                     message:@"Could not find your T/LT device nearby. Please try again when in range."
                                                    delegate:nil
@@ -180,6 +209,5 @@ NSTimer *rssiTimer;
     [alert show];
   }
 }
-
 
 @end
