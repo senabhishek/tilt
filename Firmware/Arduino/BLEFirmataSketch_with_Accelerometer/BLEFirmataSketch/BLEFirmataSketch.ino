@@ -99,6 +99,15 @@ unsigned int i2cReadDelayTime = 0;  // default delay time between i2c read reque
 
 Servo servos[MAX_SERVOS];
 
+#define DIGITAL_OUT_PIN    4
+#define DIGITAL_IN_PIN     5
+#define PWM_PIN            6
+#define PWM_LEVEL_HIGH     127
+#define PWM_LEVEL_LOW      0
+boolean lightVal = false;
+boolean soundVal = false;
+char *welcomeString = "Welcome to T/LT!";
+
 /*==============================================================================
  * GLOBAL VARIABLES ACCELEROMETER
  *============================================================================*/
@@ -772,6 +781,8 @@ void setup()
   pinMode(9,OUTPUT);
   pinMode(3,OUTPUT);
   pinMode(2,OUTPUT);  
+  pinMode(DIGITAL_OUT_PIN, OUTPUT);
+  pinMode(DIGITAL_IN_PIN, INPUT);
   
   Wire.begin(); //Join the bus as a master
   initMMA8452(); //Test and intialize the MMA8452  
@@ -842,11 +853,72 @@ boolean monitorAccelData()
    return triggerAlarm;
 }
 
+void resetPins()
+{
+  analogWrite(PWM_PIN, PWM_LEVEL_LOW);
+  digitalWrite(DIGITAL_OUT_PIN, LOW);
+}
+
+void handleShowLightCmd(byte value)
+{
+  (value == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);  
+}
+
+void handlePlaySoundCmd(byte value)
+{
+  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+}
+
+void sendWelcomeMsg()
+{
+  ble_write(0x00);
+  for (int i = 0; i < strlen(welcomeString); i++) {
+    ble_write(welcomeString[i]);  
+  }       
+}
+
 /*==============================================================================
  * LOOP()
  *============================================================================*/
 void loop() 
 {
+//// Byte 0: Command
+//  // Byte 1: Command Value
+//
+//  while (ble_available()) {
+//    // Read out command and data
+//    byte data0 = ble_read();
+//    byte data1 = ble_read();
+//    byte data2 = ble_read();
+//    
+//    switch (data0) {
+//      case 0x00:
+//        // Turn on/off light
+//        handleShowLightCmd(data1);
+//        break;
+//      
+//      case 0x01:
+//        // Turn on/off sound
+//        handlePlaySoundCmd(data1);        
+//        break;
+//      
+//      case 0x02:
+//        // Reset PINs. Sent from device upon connection. Also send a welcome message.
+//        resetPins();      
+//        sendWelcomeMsg();
+//        break;
+//      
+//      case 0x04:
+//        break;
+//        
+//      default:
+//        break;  
+//    }
+//  }
+//  
+//  // Allow BLE Shield to send/receive data
+//  ble_do_events();    
+
   byte pin, analogPin;
 
   /* DIGITALREAD - as fast as possible, check for changes and output them to the
