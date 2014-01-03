@@ -1,11 +1,6 @@
 /*
- *    BLEFirmataSketch
- *
- *    This sketch is for the BLE Arduino App
- *    It is a modified version of the Standard Firmata
- *    sketch by adding support for BLE.
- *
- */
+  T/LT Copyright 2014
+*/
 
 #include <boards.h>
 #include <SPI.h>
@@ -14,82 +9,66 @@
 #include "BLEFirmata.h"
 #include <ble_shield.h>
 #include <services.h>
-/*
- * Firmata is a generic protocol for communicating with microcontrollers
- * from software on a host computer. It is intended to work with
- * any host computer software package.
- *
- * To download a host software package, please clink on the following link
- * to open the download page in your default browser.
- *
- * http://firmata.org/wiki/Download
- */
 
-/*
-  Copyright (C) 2006-2008 Hans-Christoph Steiner.  All rights reserved.
-  Copyright (C) 2010-2011 Paul Stoffregen.  All rights reserved.
-  Copyright (C) 2009 Shigeru Kobayashi.  All rights reserved.
-  Copyright (C) 2009-2011 Jeff Hoefs.  All rights reserved.
-  
-  This library is free software; you can redistribute it and/or
-  modify it under the terms of the GNU Lesser General Public
-  License as published by the Free Software Foundation; either
-  version 2.1 of the License, or (at your option) any later version.
+/*==============================================================================
+ * FEATURE DEFINES
+ *============================================================================*/
+//#define DEBUG
+//#define FREEFALL_MOTION_ENABLE
+//#define BLE_FIRMATA
+#define TEST_BT_WITHOUT_ACCELEROMETER
+
+/*==============================================================================
+ * ENUMERATIONS
+ *============================================================================*/
+typedef enum ble_cmd_phone_to_tilt_e {
+  BLE_CMD_PHONE_TO_TILT_LIGHT_ENABLE_DISABLE = 0x0,
+  BLE_CMD_PHONE_TO_TILT_SOUND_ENABLE_DISABLE,
+  BLE_CMD_PHONE_TO_TILT_RESET
+} ble_cmd_phone_to_tilt_e_type;
+
+typedef enum ble_cmd_tilt_to_phone_e {
+  BLE_CMD_TILT_TO_PHONE_GENERAL_MSG = 0x0
+} ble_cmd_tilt_to_phone_e_type;
+
+/*==============================================================================
+ * MACROS
+ *============================================================================*/
  
-  See file LICENSE.txt for further informations on licensing terms.
+// Bit-wise macros
+#define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
+#define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
+#define CHECKBIT(x,y) (x & (y))   //True if bit y of byte x=1. 
 
-  formatted using the GNU C formatting and indenting
-*/
+/*==============================================================================
+ * GLOBAL VARIABLES
+ *============================================================================*/
 
-/* 
- * TODO: use Program Control to load stored profiles from EEPROM
- */
+char *welcomeString = "Welcome to T/LT!";
 
-// move the following defines to Firmata.h?
+/*==============================================================================
+ * I2C
+ *============================================================================*/
+ 
+// I2C Constants 
 #define I2C_WRITE B00000000
 #define I2C_READ B00001000
 #define I2C_READ_CONTINUOUSLY B00010000
 #define I2C_STOP_READING B00011000
 #define I2C_READ_WRITE_MODE_MASK B00011000
 #define I2C_10BIT_ADDRESS_MODE_MASK B00100000
-
 #define MAX_QUERIES 8
 #define MINIMUM_SAMPLING_INTERVAL 10
-
 #define REGISTER_NOT_SPECIFIED -1
 
-/*==============================================================================
- * GLOBAL VARIABLES
- *============================================================================*/
-/* interrupt status */
-volatile unsigned int int_status1 = 0;
-volatile unsigned int int_status2 = 0;
-
-/* analog inputs */
-int analogInputsToReport = 0; // bitwise array to store pin reporting
-
-/* digital input ports */
-byte reportPINs[TOTAL_PORTS];       // 1 = report this port, 0 = silence
-byte previousPINs[TOTAL_PORTS];     // previous 8 bits sent
-
-/* pins configuration */
-byte pinConfig[TOTAL_PINS];         // configuration of every pin
-byte portConfigInputs[TOTAL_PORTS]; // each bit: 1 = pin in INPUT, 0 = anything else
-int pinState[TOTAL_PINS];           // any value that has been written
-
-/* timer variables */
-unsigned long currentMillis;        // store the current value from millis()
-unsigned long previousMillis;       // for comparison with currentMillis
-int samplingInterval = 38;          // how often to run the main loop (in ms)
-
-/* i2c data */
+/* I2C data */
 struct i2c_device_info {
   byte addr;
   byte reg;
   byte bytes;
 };
 
-/* for i2c read continuous more */
+/* For I2C read continuous more */
 i2c_device_info query[MAX_QUERIES];
 
 byte i2cRxData[32];
@@ -97,24 +76,46 @@ boolean isI2CEnabled = false;
 signed char queryIndex = -1;
 unsigned int i2cReadDelayTime = 0;  // default delay time between i2c read request and Wire.requestFrom()
 
-Servo servos[MAX_SERVOS];
+/*==============================================================================
+ * I2C
+ *============================================================================*/
+
+/* Analog inputs */
+int analogInputsToReport = 0; // bitwise array to store pin reporting
+
+/*==============================================================================
+ * PIN Info
+ *============================================================================*/
 
 #define DIGITAL_OUT_PIN    4
 #define DIGITAL_IN_PIN     5
 #define PWM_PIN            6
 #define PWM_LEVEL_HIGH     127
 #define PWM_LEVEL_LOW      0
-boolean lightVal = false;
-boolean soundVal = false;
-char *welcomeString = "Welcome to T/LT!";
+#define NOTE_B0            31
+#define NOTE_FS7           2960
+#define NOTE_DS5           622
+
+/* Digital input ports */
+byte reportPINs[TOTAL_PORTS];       // 1 = report this port, 0 = silence
+byte previousPINs[TOTAL_PORTS];     // previous 8 bits sent
+/* Pins configuration */
+byte pinConfig[TOTAL_PINS];         // configuration of every pin
+byte portConfigInputs[TOTAL_PORTS]; // each bit: 1 = pin in INPUT, 0 = anything else
+int pinState[TOTAL_PINS];           // any value that has been written
+/* Timer variables */
+unsigned long currentMillis;        // store the current value from millis()
+unsigned long previousMillis;       // for comparison with currentMillis
+int samplingInterval = 38;          // how often to run the main loop (in ms)
+Servo servos[MAX_SERVOS];
 
 /*==============================================================================
- * GLOBAL VARIABLES ACCELEROMETER
+ * ACCELEROMETER GLOBAL VARIABLES + CONSTANTS 
  *============================================================================*/
 // The SparkFun breakout board defaults to 1, set to 0 if SA0 jumper on the bottom of the board is set
 #define MMA8452_ADDRESS 0x1D  // 0x1D if SA0 is high, 0x1C if low
 
-//Define a few of the registers that we will be accessing on the MMA8452
+// Define a few of the registers that we will be accessing on the MMA8452
 #define OUT_X_MSB 0x01
 #define XYZ_DATA_CFG  0x0E
 #define WHO_AM_I   0x0D
@@ -132,88 +133,55 @@ char *welcomeString = "Welcome to T/LT!";
 #define ODR_50_HZ  0x20 
 #define LNOISE_DEFAULT  0x00
 #define F_READ_DEFAULT  0x00
-
 #define SLPE  0x04  
 #define SMODS_LOW_POW  0x18
 #define MODS_NORMAL_POW  0x00
 #define ST_DEFAULT  0x00
 #define RST_DEFAULT  0x00
-
-
 #define WAKE_FF_MT  0x08
 #define WAKE_TRANS  0x40  
 #define IPOL_DEFAULT 0x00
 #define PP_OD_DEFAULT 0x00
-
 #define INT_EN_FF_MT  0x04
 #define INT_EN_TRANS  0x20
 #define INT_EN_ASLP  0x80
-
 #define INT_CFG_FF_MT  0x04
 #define INT_CFG_TRANS  0x20
-
 #define ASLP_COUNT_50_HZ_960_MS  0x03
-  
 #define ELE  0x80
 #define OAE_MOTION  0x40
 #define XYZ_EFE 0x18
-
 #define DBCNTM_MOTION  0x00
 #define THS_0_2_G  0x0B
-
 #define FF_MT_DEBOUNCE_50_HZ_20_MS  0x0A
-
 #define ELE  0x10
 #define XYZ_EFE 0x06
 #define HPF_BYP 0x00
-
 #define DBCNTM_TRANS  0x00 
 #define TRANS_THS_0_5_G  0x05
-
 #define TRANS_DEBOUNCE_50_HZ_20_MS  0x03
-
 //The SRC registers for clearing and reading status of interrupts
 #define SYSMOD 0x0B
 #define TRANSIENT_SRC 0x1E     
 #define FF_MT_SRC 0x16  
-
 // Motion Detection registers
 #define FF_MT_CFG  0x15
 #define FF_MT_SRC  0x16
 #define FF_MT_THS  0x17
 #define FF_MT_COUNT  0x18
-
 //Transient registers
 #define TRANSIENT_CFG 0x1D
 #define TRANSIENT_THS 0x1F
 #define TRANSIENT_COUNT 0x20
-
 #define INT_SOURCE  0x0C
-
-// Bit-wise macros
-#define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
-#define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
-#define CHECKBIT(x,y) (x & (y))   //True if bit y of byte x=1. 
-
 #define GSCALE 2 // Sets full-scale range to +/-2, 4, or 8g. Used to calc real g values.
 
+/* Interrupt Status */
+volatile unsigned int int_status1 = 0;
+volatile unsigned int int_status2 = 0;
 float threshX = 0.5;
 float threshY = 0.3;
 float threshZ = 0.5;
-
-int red = 11;
-int green = 10;
-int blue = 9;
-int soundPin = 3;
-
-int redVal = 0;
-int greenVal = 0;
-int blueVal = 0;
-
-#define NOTE_B0  31
-#define NOTE_FS7 2960
-#define NOTE_DS5 622
-
 boolean accelConfgd = false;
 boolean deviceSecurityEnabled = true;
 int accelCount[3];  // Stores the 12-bit signed value
@@ -431,7 +399,6 @@ void digitalWriteCallback(byte port, int value)
     writePort(port, (byte)value, pinWriteMask);
   }
 }
-
 
 // -----------------------------------------------------------------------------
 /* sets bits in a bit array (int) to toggle the reporting of the analogIns
@@ -686,21 +653,16 @@ void disableI2CPins() {
 /*==============================================================================
  * SETUP()
  *============================================================================*/
-//Interrupt Service Routines
+ 
+// Interrupt Service Routines
 void int0_bh()
 {
-//  byte val=0;
-//  readRegisters(INT_SOURCE, sizeof(byte), &val);
-//  int_status1 = (int)val;
-    int_status1=1;
+  int_status1 = 1;
 }
 
 void int1_bh()
 {
-//  byte val=0;
-//  readRegisters(INT_SOURCE, sizeof(byte), &val);
-//  int_status2 = (int)val;
-    int_status2=1;
+  int_status2 = 1;
 }
 
 void systemResetCallback()
@@ -727,33 +689,17 @@ void systemResetCallback()
     if ( (i==MOSI) || (i==MISO) || (i==SCK) || (i==SS) )
       continue;
      
-     // Default all to digital pins  
-//    if (IS_PIN_ANALOG(i)) {
-      // turns off pullup, configures everything
-//      setPinModeCallback(i, ANALOG);
-//    } else {
-      // sets the output to 0, configures portConfigInputs
-      setPinModeCallback(i, OUTPUT);
-//    }
+    // Default all to digital pins  
+    setPinModeCallback(i, OUTPUT);
   }
-  // by default, do not report any analog inputs
+  
+  // By default, do not report any analog inputs
   analogInputsToReport = 0;
-
-  /* send digital inputs to set the initial state on the host computer,
-   * since once in the loop(), this firmware will only send on change */
-  /*
-  TODO: this can never execute, since no pins default to digital input
-        but it will be needed when/if we support EEPROM stored config
-  for (byte i=0; i < TOTAL_PORTS; i++) {
-    outputPort(i, readPort(i, portConfigInputs[i]), true);
-  }
-  */
 }
 
 void setup() 
 {
-//  BleFirmata.setFirmwareVersion(FIRMATA_MAJOR_VERSION, FIRMATA_MINOR_VERSION);
-
+#ifdef BLE_FIRMATA
   BleFirmata.attach(ANALOG_MESSAGE, analogWriteCallback);
   BleFirmata.attach(DIGITAL_MESSAGE, digitalWriteCallback);
   BleFirmata.attach(REPORT_ANALOG, reportAnalogCallback);
@@ -761,36 +707,26 @@ void setup()
   BleFirmata.attach(SET_PIN_MODE, setPinModeCallback);
   BleFirmata.attach(START_SYSEX, sysexCallback);
   BleFirmata.attach(SYSTEM_RESET, systemResetCallback);
+#endif /* BLE_FIRMATA */
 
   // BleFirmata.begin(57600);
   systemResetCallback();  // reset to default config
 
   // Enable serial debug
   Serial.begin(baudRate);
-  
-  // Default pins set to 9 and 8 for REQN and RDYN
-  // Set your REQN and RDYN here before ble_begin() if you need
-  //ble_set_pins(3, 2);
-  
+   
   // Init. BLE and start BLE library.
   ble_begin();
   
-  /* ACCELEROMETER setup */
-  pinMode(11,OUTPUT);
-  pinMode(10,OUTPUT);
-  pinMode(9,OUTPUT);
-  pinMode(3,OUTPUT);
-  pinMode(2,OUTPUT);  
   pinMode(DIGITAL_OUT_PIN, OUTPUT);
   pinMode(DIGITAL_IN_PIN, INPUT);
-  
   Wire.begin(); //Join the bus as a master
+#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
   initMMA8452(); //Test and intialize the MMA8452  
-  
-  Serial.println("Attaching the interrupt lines");
+  // Attach Interrupts for accelerometer
   attachInterrupt(0, int0_bh, CHANGE);
   attachInterrupt(1, int1_bh, CHANGE);
-  Serial.println("Attaching interrupt lines was successful!!!");
+#endif /* TEST_BT_WITHOUT_ACCELEROMETER */  
 }
 
 void readAndSaveAccelValues()
@@ -871,7 +807,7 @@ void handlePlaySoundCmd(byte value)
 
 void sendWelcomeMsg()
 {
-  ble_write(0x00);
+  ble_write(BLE_CMD_TILT_TO_PHONE_GENERAL_MSG);
   for (int i = 0; i < strlen(welcomeString); i++) {
     ble_write(welcomeString[i]);  
   }       
@@ -882,43 +818,41 @@ void sendWelcomeMsg()
  *============================================================================*/
 void loop() 
 {
-//// Byte 0: Command
-//  // Byte 1: Command Value
-//
-//  while (ble_available()) {
-//    // Read out command and data
-//    byte data0 = ble_read();
-//    byte data1 = ble_read();
-//    byte data2 = ble_read();
-//    
-//    switch (data0) {
-//      case 0x00:
-//        // Turn on/off light
-//        handleShowLightCmd(data1);
-//        break;
-//      
-//      case 0x01:
-//        // Turn on/off sound
-//        handlePlaySoundCmd(data1);        
-//        break;
-//      
-//      case 0x02:
-//        // Reset PINs. Sent from device upon connection. Also send a welcome message.
-//        resetPins();      
-//        sendWelcomeMsg();
-//        break;
-//      
-//      case 0x04:
-//        break;
-//        
-//      default:
-//        break;  
-//    }
-//  }
-//  
-//  // Allow BLE Shield to send/receive data
-//  ble_do_events();    
+#ifndef BLE_FIRMATA  
+  // Byte 0: Command
+  // Byte 1: Command Value
 
+  while (ble_available()) {
+    // Read out command and data
+    byte data0 = ble_read();
+    byte data1 = ble_read();
+    byte data2 = ble_read();
+    
+    switch (data0) {
+      case BLE_CMD_PHONE_TO_TILT_LIGHT_ENABLE_DISABLE:
+        // Turn on/off light
+        handleShowLightCmd(data1);
+        break;
+      
+      case BLE_CMD_PHONE_TO_TILT_SOUND_ENABLE_DISABLE:
+        // Turn on/off sound
+        handlePlaySoundCmd(data1);        
+        break;
+      
+      case BLE_CMD_PHONE_TO_TILT_RESET:
+        // Reset PINs. Sent from device upon connection. Also send a welcome message.
+        resetPins();      
+        sendWelcomeMsg();
+        break;
+      
+      case 0x04:
+        break;
+        
+      default:
+        break;  
+    }
+  }
+#else 
   byte pin, analogPin;
 
   /* DIGITALREAD - as fast as possible, check for changes and output them to the
@@ -955,8 +889,10 @@ void loop()
         readAndReportData(query[i].addr, query[i].reg, query[i].bytes);
       }
     }
-  }
+  }  
+#endif /* BLE_FIRMATA */
 
+#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
   if (!ble_connected()) {
     systemResetCallback();
     if (!accelConfgd) {
@@ -969,14 +905,13 @@ void loop()
       setAccelConfigParm(false);  
     } 
   }
-  
-  ble_do_events();
-  
+
   // Read and print accel data
   readAndSaveAccelValues();
   //printAccelValues();
   byte val;
   readRegisters(INT_SOURCE, sizeof(byte), &val);
+  
 #ifdef DEBUG
   if (val > 0) {
     printAccelValues();
@@ -987,103 +922,88 @@ void loop()
     Serial.print("SYSMOD: ");
     Serial.println(val);
     
-    #ifdef FF_MT_ENABLE 
+#ifdef FREEFALL_MOTION_ENABLE 
       readRegisters(FF_MT_SRC, sizeof(byte), &val);
       Serial.print("FF_MT_SRC: ");
       Serial.println(val);
-    #else  
+#else  
       readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
       Serial.print("TRANSIENT_SRC: ");
       Serial.println(val);
-    #endif
+#endif /* FREEFALL_MOTION_ENABLE */
   }
-#endif
-//     if(int_status1>0)
-//     {
-//      Serial.print("Interrupt status1: ");
-//      Serial.println(int_status1);
-//     }
-//     if(int_status2>0)
-//     {
-//      Serial.print("Interrupt status2: ");
-//      Serial.println(int_status2);
-//     }
-     if(int_status1>0)
-     {
-        readRegisters(INT_SOURCE, sizeof(byte), &val);
-        Serial.print("INT_SOURCE1: ");
-        Serial.println(val);
-        delay(50);
-        #ifdef FF_MT_ENABLE 
-          readRegisters(FF_MT_SRC, sizeof(byte), &val);
-          Serial.print("FF_MT_SRC: ");
-          Serial.println(val);
-        #else  
-          readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
-          Serial.print("TRANSIENT_SRC: ");
-          Serial.println(val);
-        delay(50);          
-        #endif
-        
-        readRegisters(INT_SOURCE, sizeof(byte), &val);
-        Serial.print("IIIIINT_SOURCE1: ");
-        Serial.println(val);
-        delay(50);
-       
-        readRegisters(CTRL_REG4, sizeof(byte), &val);
-        Serial.print("CTRL_REG4: ");
-        Serial.println(val);
-        delay(50);
-        
-        readRegisters(CTRL_REG5, sizeof(byte), &val);
-        Serial.print("CTRL_REG5: ");
-        Serial.println(val);
-        delay(50);  
-        readRegisters(XYZ_DATA_CFG, sizeof(byte), &val);
-        Serial.print("CTRL_REG5: ");
-        Serial.println(val);
-        delay(50);  
-        
-        
-        int_status1=0;
-     }
-     if(int_status2>0)
-     {
-       readRegisters(INT_SOURCE, sizeof(byte), &val);
-       Serial.print("INT_SOURCE2: ");
-       Serial.println(val);
-//        readRegisters(SYSMOD, sizeof(byte), &val);
-//        Serial.print("SYSMOD: ");
-//        Serial.println(val);  
-        int_status2=0;       
-        readRegisters(INT_SOURCE, sizeof(byte), &val);
-        Serial.print("IIIINT_SOURCE2: ");
-        Serial.println(val);        
-     }
+#endif /* DEBUG */
+
+  if (int_status1 > 0) {
+    readRegisters(INT_SOURCE, sizeof(byte), &val);
+    Serial.print("INT_SOURCE1: ");
+    Serial.println(val);
+    delay(50);
+#ifdef FREEFALL_MOTION_ENABLE 
+    readRegisters(FF_MT_SRC, sizeof(byte), &val);
+    Serial.print("FF_MT_SRC: ");
+    Serial.println(val);
+#else  
+    readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
+    Serial.print("TRANSIENT_SRC: ");
+    Serial.println(val);
+    delay(50);          
+#endif /* FREEFALL_MOTION_ENABLE */
+    
+    readRegisters(INT_SOURCE, sizeof(byte), &val);
+    Serial.print("IIIIINT_SOURCE1: ");
+    Serial.println(val);
+    delay(50);
      
-//       readRegisters(INT_SOURCE, sizeof(byte), &val);
-//       if(val>0)
-//       {
-//         Serial.print("INT_SOURCE2: ");
-//         Serial.println(val);
-//       }
+    readRegisters(CTRL_REG4, sizeof(byte), &val);
+    Serial.print("CTRL_REG4: ");
+    Serial.println(val);
+    delay(50);
+    
+    readRegisters(CTRL_REG5, sizeof(byte), &val);
+    Serial.print("CTRL_REG5: ");
+    Serial.println(val);
+    delay(50);  
+    readRegisters(XYZ_DATA_CFG, sizeof(byte), &val);
+    Serial.print("CTRL_REG5: ");
+    Serial.println(val);
+    delay(50);  
+    int_status1=0;
+  }
+  
+  if (int_status2 > 0) {
+    readRegisters(INT_SOURCE, sizeof(byte), &val);
+    Serial.print("INT_SOURCE2: ");
+    Serial.println(val);
+    int_status2=0;       
+    readRegisters(INT_SOURCE, sizeof(byte), &val);
+    Serial.print("IIIINT_SOURCE2: ");
+    Serial.println(val);        
+  }  
+#else
+  if (!ble_connected()) {
+    systemResetCallback();
+  }
+#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
+  
+  // Allow BLE Shield to send/receive data
+  ble_do_events();
 }
 
+/*==============================================================================
+ * ACCELEROMETER METHODS
+ *============================================================================*/
 void readAccelData(int *destination)
 {
   byte rawData[6];  // x/y/z accel register data stored here
-
   readRegisters(OUT_X_MSB, 6, rawData);  // Read the six raw data registers into data array
 
   // Loop to calculate 12-bit ADC and g value for each axis
-  for(int i = 0; i < 3 ; i++)
-  {
+  for (int i = 0; i < 3 ; i++) {
     int gCount = (rawData[i*2] << 8) | rawData[(i*2)+1];  //Combine the two 8 bit registers into one 12-bit number
     gCount >>= 4; //The registers are left align, here we right align the 12-bit integer
-
     // If the number is negative, we have to make it so manually (no 12-bit data type)
-    if (rawData[i*2] > 0x7F)
-    {  
+    if (rawData[i*2] > 0x7F) {  
       gCount = ~gCount + 1;
       gCount *= -1;  // Transform into negative 2's complement #
     }
@@ -1095,7 +1015,6 @@ void readAccelData(int *destination)
 // Initialize the MMA8452 registers 
 // See the many application notes for more info on setting all of these registers:
 // http://www.freescale.com/webapp/sps/site/prod_summary.jsp?code=MMA8452Q
-
 void initMMA8452()
 {
   byte val = readRegister(WHO_AM_I);  // Read WHO_AM_I register
@@ -1114,7 +1033,7 @@ void initMMA8452()
 
   // Initialize GSCALE
   val = GSCALE;
-  if(val > 8) val = 8; //Easy error check
+  if (val > 8) val = 8; //Easy error check
   val >>= 2; // Neat trick, see page 22. 00 = 2G, 01 = 4A, 10 = 8G
   writeRegister(XYZ_DATA_CFG, val);
 
@@ -1132,26 +1051,26 @@ void initMMA8452()
   
   val = ASLP_COUNT_50_HZ_960_MS;
   writeRegister(ASLP_COUNT, val); 
- #ifdef FF_MT_ENABLED 
-    val = (ELE | OAE_MOTION | XYZ_EFE);
-    writeRegister(FF_MT_CFG, val);
-    
-    val = (DBCNTM_MOTION | THS_0_2_G);
-    writeRegister(FF_MT_THS, val);  
   
-    val = FF_MT_DEBOUNCE_50_HZ_20_MS;
-    writeRegister(FF_MT_COUNT, val);  
-  #else
-    val = (ELE | XYZ_EFE | HPF_BYP);
-    writeRegister(TRANSIENT_CFG, val);
-
-    val = (DBCNTM_TRANS | TRANS_THS_0_5_G);
-    writeRegister(TRANSIENT_THS, val);
-    
-    val = TRANS_DEBOUNCE_50_HZ_20_MS;
-    writeRegister(TRANSIENT_COUNT, val);    
-  #endif
-  //The default data rate is 800Hz and we don't modify it in this example code
+#ifdef FREEFALL_MOTION_ENABLE 
+  val = (ELE | OAE_MOTION | XYZ_EFE);
+  writeRegister(FF_MT_CFG, val);
+  
+  val = (DBCNTM_MOTION | THS_0_2_G);
+  writeRegister(FF_MT_THS, val);  
+  
+  val = FF_MT_DEBOUNCE_50_HZ_20_MS;
+  writeRegister(FF_MT_COUNT, val);  
+#else
+  val = (ELE | XYZ_EFE | HPF_BYP);
+  writeRegister(TRANSIENT_CFG, val);
+  
+  val = (DBCNTM_TRANS | TRANS_THS_0_5_G);
+  writeRegister(TRANSIENT_THS, val);
+  
+  val = TRANS_DEBOUNCE_50_HZ_20_MS;
+  writeRegister(TRANSIENT_COUNT, val);    
+#endif /* FREEFALL_MOTION_ENABLE */
   
   val = (INT_EN_TRANS);
   writeRegister(CTRL_REG4, val);
@@ -1179,13 +1098,13 @@ void readRegisters(byte addressToRead, int bytesToRead, byte * dest)
   Wire.beginTransmission(MMA8452_ADDRESS);
   Wire.write(addressToRead);
   Wire.endTransmission(false); //endTransmission but keep the connection active
+  Wire.requestFrom(MMA8452_ADDRESS, bytesToRead); //Ask for bytes, once done, bus is released by default
+  while (Wire.available() < bytesToRead); //Hang out until we get the # of bytes we expect
 
-    Wire.requestFrom(MMA8452_ADDRESS, bytesToRead); //Ask for bytes, once done, bus is released by default
-
-  while(Wire.available() < bytesToRead); //Hang out until we get the # of bytes we expect
-
-  for(int x = 0 ; x < bytesToRead ; x++)
+  for (int x = 0 ; x < bytesToRead ; x++) {
     dest[x] = Wire.read();  
+  }
+  
   Wire.endTransmission(true); //endTransmission but keep the connection active  
 }
 
@@ -1195,9 +1114,7 @@ byte readRegister(byte addressToRead)
   Wire.beginTransmission(MMA8452_ADDRESS);
   Wire.write(addressToRead);
   Wire.endTransmission(false); //endTransmission but keep the connection active
-
-    Wire.requestFrom(MMA8452_ADDRESS, 1); //Ask for 1 byte, once done, bus is released by default
-
+  Wire.requestFrom(MMA8452_ADDRESS, 1); //Ask for 1 byte, once done, bus is released by default
   while(!Wire.available()) ; //Wait for the data to come back
   return Wire.read(); //Return this one byte
 }
