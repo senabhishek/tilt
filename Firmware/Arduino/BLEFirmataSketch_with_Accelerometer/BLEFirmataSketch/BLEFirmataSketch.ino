@@ -790,7 +790,6 @@ ISR(TIMER1_COMPA_vect) {
 
 void handleShowLightCmd(byte value)
 {
-//  (value == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);  
   if (value == TRUE) {
     showLight = true;
   } else {
