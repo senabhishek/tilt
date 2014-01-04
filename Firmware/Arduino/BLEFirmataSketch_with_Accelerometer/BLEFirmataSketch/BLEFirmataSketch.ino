@@ -4,7 +4,6 @@
 
 #include <boards.h>
 #include <SPI.h>
-#include <Servo.h>
 #include <Wire.h>
 #include "BLEFirmata.h"
 #include <ble_shield.h>
@@ -45,6 +44,8 @@ typedef enum ble_cmd_tilt_to_phone_e {
  *============================================================================*/
 
 char *welcomeString = "Welcome to T/LT!";
+#define  TRUE  0x01
+#define  FALSE  0x00
 
 /*==============================================================================
  * I2C
@@ -88,7 +89,6 @@ int analogInputsToReport = 0; // bitwise array to store pin reporting
  *============================================================================*/
 
 #define DIGITAL_OUT_PIN    4
-#define DIGITAL_IN_PIN     5
 #define PWM_PIN            6
 #define PWM_LEVEL_HIGH     127
 #define PWM_LEVEL_LOW      0
@@ -107,7 +107,9 @@ int pinState[TOTAL_PINS];           // any value that has been written
 unsigned long currentMillis;        // store the current value from millis()
 unsigned long previousMillis;       // for comparison with currentMillis
 int samplingInterval = 38;          // how often to run the main loop (in ms)
-Servo servos[MAX_SERVOS];
+boolean showLight = false;
+volatile int prevLightVal = LOW;
+boolean playSound = false;
 
 /*==============================================================================
  * ACCELEROMETER GLOBAL VARIABLES + CONSTANTS 
@@ -286,9 +288,6 @@ void setPinModeCallback(byte pin, int mode)
     // the following if statements should reconfigure the pins properly
     disableI2CPins();
   }
-  if (IS_PIN_SERVO(pin) && mode != SERVO && servos[PIN_TO_SERVO(pin)].attached()) {
-    servos[PIN_TO_SERVO(pin)].detach();
-  }
   if (IS_PIN_ANALOG(pin)) {
     reportAnalogCallback(PIN_TO_ANALOG(pin), mode == ANALOG ? 1 : 0); // turn on/off reporting
   }
@@ -337,14 +336,6 @@ void setPinModeCallback(byte pin, int mode)
       pinConfig[pin] = PWM;
     }
     break;
-  case SERVO:
-    if (IS_PIN_SERVO(pin)) {
-      pinConfig[pin] = SERVO;
-      if (!servos[PIN_TO_SERVO(pin)].attached()) {
-          servos[PIN_TO_SERVO(pin)].attach(PIN_TO_DIGITAL(pin));
-      }
-    }
-    break;
   case I2C:
     if (IS_PIN_I2C(pin)) {
       // mark the pin as i2c
@@ -362,11 +353,6 @@ void analogWriteCallback(byte pin, int value)
 {
   if (pin < TOTAL_PINS) {
     switch(pinConfig[pin]) {
-    case SERVO:
-      if (IS_PIN_SERVO(pin))
-        servos[PIN_TO_SERVO(pin)].write(value);
-        pinState[pin] = value;
-      break;
     case PWM:
       if (IS_PIN_PWM(pin))
         analogWrite(PIN_TO_PWM(pin), value);
@@ -534,21 +520,6 @@ void sysexCallback(byte command, byte argc, byte *argv)
     }
     
     break;
-  case SERVO_CONFIG:
-    if(argc > 4) {
-      // these vars are here for clarity, they'll optimized away by the compiler
-      byte pin = argv[0];
-      int minPulse = argv[1] + (argv[2] << 7);
-      int maxPulse = argv[3] + (argv[4] << 7);
-
-      if (IS_PIN_SERVO(pin)) {
-        if (servos[PIN_TO_SERVO(pin)].attached())
-          servos[PIN_TO_SERVO(pin)].detach();
-        servos[PIN_TO_SERVO(pin)].attach(PIN_TO_DIGITAL(pin), minPulse, maxPulse);
-        setPinModeCallback(pin, SERVO);
-      }
-    }
-    break;
   case SAMPLING_INTERVAL:
     if (argc > 1) {
       samplingInterval = argv[0] + (argv[1] << 7);
@@ -709,7 +680,6 @@ void setup()
   BleFirmata.attach(SYSTEM_RESET, systemResetCallback);
 #endif /* BLE_FIRMATA */
 
-  // BleFirmata.begin(57600);
   systemResetCallback();  // reset to default config
 
   // Enable serial debug
@@ -719,7 +689,22 @@ void setup()
   ble_begin();
   
   pinMode(DIGITAL_OUT_PIN, OUTPUT);
-  pinMode(DIGITAL_IN_PIN, INPUT);
+  
+  // Set LED blink timer for a value of 250 ms if enabled from phone
+  noInterrupts();
+//set timer1 interrupt at 4Hz
+  TCCR1A = 0;// set entire TCCR1A register to 0
+  TCCR1B = 0;// same for TCCR1B
+  TCNT1  = 0;//initialize counter value to 0
+  // set compare match register for 1hz increments
+  OCR1A = 3096;// = (16*10^6) / (4*1024) - 1 (must be <65536)
+  // turn on CTC mode
+  TCCR1B |= (1 << WGM12);
+  // Set CS10 and CS12 bits for 1024 prescaler
+  TCCR1B |= (1 << CS12) | (1 << CS10);  
+  // enable timer compare interrupt
+  TIMSK1 |= (1 << OCIE1A);  
+  interrupts();
   Wire.begin(); //Join the bus as a master
 #ifndef TEST_BT_WITHOUT_ACCELEROMETER  
   initMMA8452(); //Test and intialize the MMA8452  
@@ -795,14 +780,30 @@ void resetPins()
   digitalWrite(DIGITAL_OUT_PIN, LOW);
 }
 
+ISR(TIMER1_COMPA_vect) {
+  // Generates pulse wave of frequency 4 Hz
+  if (showLight) {    
+    prevLightVal = (prevLightVal == HIGH) ? LOW : HIGH;    
+    digitalWrite(DIGITAL_OUT_PIN, prevLightVal);
+  }
+}
+
 void handleShowLightCmd(byte value)
 {
-  (value == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);  
+//  (value == 0x01) ? digitalWrite(DIGITAL_OUT_PIN, HIGH) : digitalWrite(DIGITAL_OUT_PIN, LOW);  
+  if (value == TRUE) {
+    showLight = true;
+  } else {
+    showLight = false;
+    prevLightVal = LOW; 
+    digitalWrite(DIGITAL_OUT_PIN, LOW);
+  } 
 }
 
 void handlePlaySoundCmd(byte value)
 {
-  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+//  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+  playSound = (value == 0x01) ? true : false;
 }
 
 void sendWelcomeMsg()
