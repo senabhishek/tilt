@@ -15,7 +15,8 @@
 //#define DEBUG
 //#define FREEFALL_MOTION_ENABLE
 //#define BLE_FIRMATA
-#define TEST_BT_WITHOUT_ACCELEROMETER
+//#define TEST_BT_WITHOUT_ACCELEROMETER
+#define TEST_ACCELEROMETER_WITHOUT_BT
 
 /*==============================================================================
  * ENUMERATIONS
@@ -143,25 +144,27 @@ boolean playSound = false;
 #define WAKE_FF_MT  0x08
 #define WAKE_TRANS  0x40  
 #define IPOL_DEFAULT 0x00
+#define IPOL_ACTIVE_HIGH 0x02
 #define PP_OD_DEFAULT 0x00
 #define INT_EN_FF_MT  0x04
 #define INT_EN_TRANS  0x20
+#define INT_EN_DRDY  0x1
 #define INT_EN_ASLP  0x80
 #define INT_CFG_FF_MT  0x04
 #define INT_CFG_TRANS  0x20
 #define ASLP_COUNT_50_HZ_960_MS  0x03
 #define ELE  0x80
 #define OAE_MOTION  0x40
-#define XYZ_EFE 0x18
+#define XYZ_EFE_FF 0x18
 #define DBCNTM_MOTION  0x00
 #define THS_0_2_G  0x0B
 #define FF_MT_DEBOUNCE_50_HZ_20_MS  0x0A
 #define ELE  0x10
-#define XYZ_EFE 0x06
+#define XYZ_EFE_TRANS 0x0E
 #define HPF_BYP 0x00
 #define DBCNTM_TRANS  0x00 
 #define TRANS_THS_0_5_G  0x05
-#define TRANS_DEBOUNCE_50_HZ_20_MS  0x03
+#define TRANS_DEBOUNCE_50_HZ_20_MS  0x05
 //The SRC registers for clearing and reading status of interrupts
 #define SYSMOD 0x0B
 #define TRANSIENT_SRC 0x1E     
@@ -179,8 +182,7 @@ boolean playSound = false;
 #define GSCALE 2 // Sets full-scale range to +/-2, 4, or 8g. Used to calc real g values.
 
 /* Interrupt Status */
-volatile unsigned int int_status1 = 0;
-volatile unsigned int int_status2 = 0;
+volatile unsigned int int_status = 0;
 float threshX = 0.5;
 float threshY = 0.3;
 float threshZ = 0.5;
@@ -622,18 +624,27 @@ void disableI2CPins() {
 }
 
 /*==============================================================================
- * SETUP()
+ * ISRs()
  *============================================================================*/
  
-// Interrupt Service Routines
 void int0_bh()
 {
-  int_status1 = 1;
+  int regVal1 = 0;
+  int regVal2 = 0;
+  regVal1 = readRegister(TRANSIENT_SRC);
+  regVal2 = readRegister(INT_SOURCE);
+  Serial.print("transSource : ");
+  Serial.println(regVal1,BIN);
+
+  // Read and print accel data
+  readAndSaveAccelValues();
+
+  int_status &= ~INT_EN_TRANS;
 }
 
 void int1_bh()
 {
-  int_status2 = 1;
+  int_status &= ~INT_EN_ASLP;
 }
 
 void systemResetCallback()
@@ -668,6 +679,9 @@ void systemResetCallback()
   analogInputsToReport = 0;
 }
 
+/*==============================================================================
+ * SETUP()
+ *============================================================================*/
 void setup() 
 {
 #ifdef BLE_FIRMATA
@@ -684,10 +698,12 @@ void setup()
 
   // Enable serial debug
   Serial.begin(baudRate);
-   
+  Serial.println("Console is UP!!!");
+#ifndef TEST_ACCELEROMETER_WITHOUT_BT   
   // Init. BLE and start BLE library.
   ble_begin();
-  
+#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
+
   pinMode(DIGITAL_OUT_PIN, OUTPUT);
   
   // Set LED blink timer for a value of 250 ms if enabled from phone
@@ -704,13 +720,12 @@ void setup()
   TCCR1B |= (1 << CS12) | (1 << CS10);  
   // enable timer compare interrupt
   TIMSK1 |= (1 << OCIE1A);  
+  
   interrupts();
   Wire.begin(); //Join the bus as a master
+  
 #ifndef TEST_BT_WITHOUT_ACCELEROMETER  
   initMMA8452(); //Test and intialize the MMA8452  
-  // Attach Interrupts for accelerometer
-  attachInterrupt(0, int0_bh, CHANGE);
-  attachInterrupt(1, int1_bh, CHANGE);
 #endif /* TEST_BT_WITHOUT_ACCELEROMETER */  
 }
 
@@ -818,7 +833,8 @@ void sendWelcomeMsg()
  *============================================================================*/
 void loop() 
 {
-#ifndef BLE_FIRMATA  
+#ifndef BLE_FIRMATA
+ #ifndef TEST_ACCELEROMETER_WITHOUT_BT
   // Byte 0: Command
   // Byte 1: Command Value
 
@@ -852,6 +868,7 @@ void loop()
         break;  
     }
   }
+  #endif /* TEST_ACCELEROMETER_WITHOUT_BT */
 #else 
   byte pin, analogPin;
 
@@ -906,88 +923,29 @@ void loop()
     } 
   }
 
-  // Read and print accel data
-  readAndSaveAccelValues();
-  //printAccelValues();
-  byte val;
-  readRegisters(INT_SOURCE, sizeof(byte), &val);
-  
-#ifdef DEBUG
-  if (val > 0) {
-    printAccelValues();
-    Serial.print("INT_SRC: ");
-    Serial.println(val);
- 
-    readRegisters(SYSMOD, sizeof(byte), &val);
-    Serial.print("SYSMOD: ");
-    Serial.println(val);
-    
-#ifdef FREEFALL_MOTION_ENABLE 
-      readRegisters(FF_MT_SRC, sizeof(byte), &val);
-      Serial.print("FF_MT_SRC: ");
-      Serial.println(val);
-#else  
-      readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
-      Serial.print("TRANSIENT_SRC: ");
-      Serial.println(val);
-#endif /* FREEFALL_MOTION_ENABLE */
-  }
-#endif /* DEBUG */
-
-  if (int_status1 > 0) {
-    readRegisters(INT_SOURCE, sizeof(byte), &val);
-    Serial.print("INT_SOURCE1: ");
-    Serial.println(val);
-    delay(50);
-#ifdef FREEFALL_MOTION_ENABLE 
-    readRegisters(FF_MT_SRC, sizeof(byte), &val);
-    Serial.print("FF_MT_SRC: ");
-    Serial.println(val);
-#else  
-    readRegisters(TRANSIENT_SRC, sizeof(byte), &val);
-    Serial.print("TRANSIENT_SRC: ");
-    Serial.println(val);
-    delay(50);          
-#endif /* FREEFALL_MOTION_ENABLE */
-    
-    readRegisters(INT_SOURCE, sizeof(byte), &val);
-    Serial.print("IIIIINT_SOURCE1: ");
-    Serial.println(val);
-    delay(50);
-     
-    readRegisters(CTRL_REG4, sizeof(byte), &val);
-    Serial.print("CTRL_REG4: ");
-    Serial.println(val);
-    delay(50);
-    
-    readRegisters(CTRL_REG5, sizeof(byte), &val);
-    Serial.print("CTRL_REG5: ");
-    Serial.println(val);
-    delay(50);  
-    readRegisters(XYZ_DATA_CFG, sizeof(byte), &val);
-    Serial.print("CTRL_REG5: ");
-    Serial.println(val);
-    delay(50);  
-    int_status1=0;
+  int_status = readRegister(INT_SOURCE);
+  if (int_status&INT_EN_TRANS) {
+      int0_bh();  
   }
   
-  if (int_status2 > 0) {
-    readRegisters(INT_SOURCE, sizeof(byte), &val);
-    Serial.print("INT_SOURCE2: ");
-    Serial.println(val);
-    int_status2=0;       
-    readRegisters(INT_SOURCE, sizeof(byte), &val);
-    Serial.print("IIIINT_SOURCE2: ");
-    Serial.println(val);        
-  }  
+  if (int_status&INT_EN_ASLP) {
+      int1_bh();
+  }
+    
 #else
+ #ifndef TEST_ACCELEROMETER_WITHOUT_BT
   if (!ble_connected()) {
     systemResetCallback();
   }
+ #endif /*  TEST_ACCELEROMETER_WITHOUT_BT */  
 #endif /* TEST_BT_WITHOUT_ACCELEROMETER */
-  
+
+#ifndef TEST_ACCELEROMETER_WITHOUT_BT  
   // Allow BLE Shield to send/receive data
   ble_do_events();
+#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
+
+// NOT adding any additional delays
 }
 
 /*==============================================================================
@@ -1043,17 +1001,17 @@ void initMMA8452()
   val = (ST_DEFAULT | RST_DEFAULT | SMODS_LOW_POW | SLPE | MODS_NORMAL_POW);
   writeRegister(CTRL_REG2, val);
 
-  val = (WAKE_TRANS | 0x02 | PP_OD_DEFAULT);
+  val = (WAKE_TRANS | IPOL_ACTIVE_HIGH | PP_OD_DEFAULT);
   writeRegister(CTRL_REG3, val);
   
-  val = 0;
+  val = INT_CFG_TRANS;
   writeRegister(CTRL_REG5, val);  
   
   val = ASLP_COUNT_50_HZ_960_MS;
   writeRegister(ASLP_COUNT, val); 
   
 #ifdef FREEFALL_MOTION_ENABLE 
-  val = (ELE | OAE_MOTION | XYZ_EFE);
+  val = (ELE | OAE_MOTION | XYZ_EFE_FF);
   writeRegister(FF_MT_CFG, val);
   
   val = (DBCNTM_MOTION | THS_0_2_G);
@@ -1062,7 +1020,7 @@ void initMMA8452()
   val = FF_MT_DEBOUNCE_50_HZ_20_MS;
   writeRegister(FF_MT_COUNT, val);  
 #else
-  val = (ELE | XYZ_EFE | HPF_BYP);
+  val = (ELE | XYZ_EFE_TRANS | HPF_BYP);
   writeRegister(TRANSIENT_CFG, val);
   
   val = (DBCNTM_TRANS | TRANS_THS_0_5_G);
@@ -1072,7 +1030,7 @@ void initMMA8452()
   writeRegister(TRANSIENT_COUNT, val);    
 #endif /* FREEFALL_MOTION_ENABLE */
   
-  val = (INT_EN_TRANS);
+  val = (INT_EN_TRANS|INT_EN_ASLP);
   writeRegister(CTRL_REG4, val);
 
   MMA8452Active();  // Set to active to start reading
