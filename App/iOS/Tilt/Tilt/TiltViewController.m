@@ -147,14 +147,23 @@ NSTimer *rssiTimer;
     ble.peripherals = nil;
   }
   
-  [btnConnect setEnabled:false];
-  lblConnectBtn.text = @"Connecting ...";
-  
   // Try to find peripherals for the next 2 seconds
-  [ble findBLEPeripherals:connectionTimeout];
-  
-  // Start connection timer for connectionTimeout value
-  [NSTimer scheduledTimerWithTimeInterval:(float)connectionTimeout target:self selector:@selector(connectionTimer:) userInfo:nil repeats:NO];
+  if ([ble findBLEPeripherals:connectionTimeout] != -1) {
+    [btnConnect setEnabled:false];
+    lblConnectBtn.text = @"Connecting ...";
+    // Start connection timer for connectionTimeout value
+    [NSTimer scheduledTimerWithTimeInterval:(float)connectionTimeout target:self selector:@selector(connectionTimer:) userInfo:nil repeats:NO];
+  } else {
+    [btnShowLight setEnabled:NO];
+    [btnPlaySound setEnabled:NO];
+    lblConnectBtn.text = @"Connect";    
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
+                                                    message:@"Please make sure Bluetooth is enabled from the Settings App."
+                                                   delegate:nil
+                                          cancelButtonTitle:@"Dismiss"
+                                          otherButtonTitles:nil];
+    [alert show];
+  }
 }
 
 - (IBAction)scanForTilt:(id)sender forEvent:(UIEvent *)event {
@@ -201,7 +210,7 @@ NSTimer *rssiTimer;
     lblConnectBtn.text = @"Connect";
     [btnShowLight setEnabled:NO];
     [btnPlaySound setEnabled:NO];
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"Oops!"
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
                                                     message:@"Could not find your T/LT device nearby. Please try again when in range."
                                                    delegate:nil
                                           cancelButtonTitle:@"Dismiss"
