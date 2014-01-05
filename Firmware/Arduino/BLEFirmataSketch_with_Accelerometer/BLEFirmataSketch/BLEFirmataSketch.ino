@@ -163,8 +163,9 @@ boolean playSound = false;
 #define XYZ_EFE_TRANS 0x0E
 #define HPF_BYP 0x00
 #define DBCNTM_TRANS  0x00 
-#define TRANS_THS_0_5_G  0x05
-#define TRANS_DEBOUNCE_50_HZ_20_MS  0x05
+// A working combination is observed at threshold = 4 and count = 5
+#define TRANS_THS_0_5_G  0x06
+#define TRANS_DEBOUNCE_50_HZ_20_MS  0x5
 //The SRC registers for clearing and reading status of interrupts
 #define SYSMOD 0x0B
 #define TRANSIENT_SRC 0x1E     
