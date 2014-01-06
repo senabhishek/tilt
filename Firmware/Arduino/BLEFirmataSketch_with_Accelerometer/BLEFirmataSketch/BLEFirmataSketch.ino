@@ -15,8 +15,8 @@
 //#define DEBUG
 //#define FREEFALL_MOTION_ENABLE
 //#define BLE_FIRMATA
-//#define TEST_BT_WITHOUT_ACCELEROMETER
-#define TEST_ACCELEROMETER_WITHOUT_BT
+#define TEST_BT_WITHOUT_ACCELEROMETER
+//#define TEST_ACCELEROMETER_WITHOUT_BT
 
 /*==============================================================================
  * ENUMERATIONS
@@ -817,8 +817,8 @@ void handleShowLightCmd(byte value)
 
 void handlePlaySoundCmd(byte value)
 {
-//  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
-  playSound = (value == 0x01) ? true : false;
+  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+//  playSound = (value == 0x01) ? true : false;
 }
 
 void sendWelcomeMsg()
