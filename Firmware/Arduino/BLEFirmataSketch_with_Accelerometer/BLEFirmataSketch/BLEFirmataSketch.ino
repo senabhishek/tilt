@@ -242,6 +242,7 @@ volatile boolean alarm_state = false;
  * FUNCTIONS
  *============================================================================*/
 
+#ifdef BLE_FIRMATA
 void readAndReportData(byte address, int theRegister, byte numBytes) {
   // allow I2C requests that don't require a register read
   // for example, some devices using an interrupt pin to signify new data available
@@ -667,24 +668,6 @@ void disableI2CPins() {
     // Wire.end();
 }
 
-/*==============================================================================
- * ISRs()
- *============================================================================*/
- 
-void int0_bh()
-{
-  regValInt = readRegister(INT_SOURCE);
-  regValTrans = readRegister(TRANSIENT_SRC);
-  // Read and print accel data
-  readAndSaveAccelValues();
-  int_status &= ~INT_EN_TRANS;
-}
-
-void int1_bh()
-{
-  int_status &= ~INT_EN_ASLP;
-}
-
 void systemResetCallback()
 {
   // initialize a defalt state
@@ -717,28 +700,30 @@ void systemResetCallback()
   analogInputsToReport = 0;
 }
 
+#endif /* BLE_FIRMATA */
+
+/*==============================================================================
+ * ISRs()
+ *============================================================================*/
+ 
+void int0_bh()
+{
+  regValInt = readRegister(INT_SOURCE);
+  regValTrans = readRegister(TRANSIENT_SRC);
+  // Read and print accel data
+  readAndSaveAccelValues();
+  int_status &= ~INT_EN_TRANS;
+}
+
+void int1_bh()
+{
+  int_status &= ~INT_EN_ASLP;
+}
+
 
 /*==============================================================================
  * SETUP()
  *============================================================================*/
-//void xTimerInterruptHandler()
-//{
-//  xTimerStarted = false;
-//  float xPolRatio = xTranOneCount/xTranCount;
-//  if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
-//    triggerAlarm = true;
-//  }  
-//}
-//
-//void zTimerInterruptHandler()
-//{
-//  Serial.println("This timer only triggers once."); 
-//  zTimerStarted = false;
-//  if (zTranCount > maxzTranCount) {
-//    triggerAlarm = true;
-//  }
-//}
-
 void setup() 
 {
 #ifdef BLE_FIRMATA
@@ -751,7 +736,7 @@ void setup()
   BleFirmata.attach(SYSTEM_RESET, systemResetCallback);
 #endif /* BLE_FIRMATA */
 
-  systemResetCallback();  // reset to default config
+  //systemResetCallback();  // reset to default config
 
   // Enable serial debug
   Serial.begin(baudRate);
@@ -786,9 +771,7 @@ void setup()
   Wire.begin(); //Join the bus as a master
   initMMA8452(); //Test and intialize the MMA8452  
   //these interrupts causes the board to keep resetting
-#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
-  
-  
+#endif /* TEST_BT_WITHOUT_ACCELEROMETER */  
 }
 
 void readAndSaveAccelValues()
@@ -800,20 +783,10 @@ void readAndSaveAccelValues()
   }  
 }
 
-void printAccelValues()
-{
-  Serial.print(accelG[0]);
-  Serial.print('|');
-  Serial.print(accelG[1]);
-  Serial.print(':');
-  Serial.println(accelG[2]);
-}
-
 void initAccelData()
 { 
   // Initialize current accel values
   readAndSaveAccelValues();
-
   initAccelG[0]=accelG[0];
   initAccelG[1]=accelG[1];
   initAccelG[2]=accelG[2];
@@ -883,7 +856,6 @@ ISR(TIMER1_COMPA_vect) {
   }
 }
 
-
 void handleShowLightCmd(byte value)
 {
   if (value == TRUE) {
@@ -906,7 +878,6 @@ void activate_light_only(boolean state){
 void activate_sound_only(boolean state){
   digitalWrite(speakerOut,state);
 }
-
 
 void alarm_handler(boolean active) {  
   prevLightVal = active;
@@ -964,8 +935,7 @@ void loop()
     }
   }
    
-#ifndef BLE_FIRMATA
- #ifndef TEST_ACCELEROMETER_WITHOUT_BT
+#ifndef TEST_ACCELEROMETER_WITHOUT_BT
   // Byte 0: Command
   // Byte 1: Command Value
 
@@ -999,50 +969,11 @@ void loop()
         break;  
     }
   }
-  #endif /* TEST_ACCELEROMETER_WITHOUT_BT */
-#else 
-  byte pin, analogPin;
-
-  /* DIGITALREAD - as fast as possible, check for changes and output them to the
-   * FTDI buffer using Serial.print()  */
-  checkDigitalInputs();  
-  
-  /* SERIALREAD - processing incoming messagse as soon as possible, while still
-   * checking digital inputs.  */
-  while(BleFirmata.available())
-    BleFirmata.processInput();
-
-  /* SEND FTDI WRITE BUFFER - make sure that the FTDI buffer doesn't go over
-   * 60 bytes. use a timer to sending an event character every 4 ms to
-   * trigger the buffer to dump. */
-
-  currentMillis = millis();
-  if (currentMillis - previousMillis > samplingInterval) {
-    previousMillis += samplingInterval;
-    /* ANALOGREAD - do all analogReads() at the configured sampling interval */
-    for(pin=0; pin<TOTAL_PINS; pin++) {
-      if ((pin==8) || (pin==9))
-        continue;
-        
-      if (IS_PIN_ANALOG(pin) && pinConfig[pin] == ANALOG) {
-        analogPin = PIN_TO_ANALOG(pin);
-        if (analogInputsToReport & (1 << analogPin)) {
-          BleFirmata.sendAnalog(analogPin, analogRead(analogPin));
-        }
-      }
-    }
-    // report i2c data for all device with read continuous mode enabled
-    if (queryIndex > -1) {
-      for (byte i = 0; i < queryIndex + 1; i++) {
-        readAndReportData(query[i].addr, query[i].reg, query[i].bytes);
-      }
-    }
-  }  
-#endif /* BLE_FIRMATA */
+#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
 
 #ifndef TEST_BT_WITHOUT_ACCELEROMETER 
   if (!ble_connected()) {
-    systemResetCallback();
+    //systemResetCallback();
     if (!accelConfgd) {
       initAccelData(); 
     } else if (deviceSecurityEnabled) {
@@ -1080,7 +1011,6 @@ void loop()
     Serial.print(ztran);
     Serial.print(" ztran_pol ");
     Serial.println(ztran_pol);    
-    
 
     if (ztran) {
       if (!zTimerStarted) {
