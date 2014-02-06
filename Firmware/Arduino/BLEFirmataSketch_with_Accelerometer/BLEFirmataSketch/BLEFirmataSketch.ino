@@ -12,11 +12,12 @@
 /*==============================================================================
  * FEATURE DEFINES
  *============================================================================*/
+/* DON'T TEST WITH THESE FEATURES NOW */
 //#define DEBUG
 //#define FREEFALL_MOTION_ENABLE
 //#define BLE_FIRMATA
 //#define TEST_BT_WITHOUT_ACCELEROMETER
-#define TEST_ACCELEROMETER_WITHOUT_BT
+//#define TEST_ACCELEROMETER_WITHOUT_BT
 
 /*==============================================================================
  * ENUMERATIONS
@@ -86,16 +87,26 @@ unsigned int i2cReadDelayTime = 0;  // default delay time between i2c read reque
 int analogInputsToReport = 0; // bitwise array to store pin reporting
 
 /*==============================================================================
- * PIN Info
+ * LIGHT/SOUND CONSTANTS
  *============================================================================*/
-
-#define DIGITAL_OUT_PIN    4
+ 
 #define PWM_PIN            6
 #define PWM_LEVEL_HIGH     127
 #define PWM_LEVEL_LOW      0
 #define NOTE_B0            31
 #define NOTE_FS7           2960
 #define NOTE_DS5           622
+#define LIGHT_FRONT        13
+#define LIGHT_RIGHT        12
+#define LIGHT_LEFT         11
+#define LIGHT_BACK         10
+#define SPEAKER_OUT        8
+
+//sound configuration
+int speakerOut = 8; // loud speaker
+const unsigned long maxAlarmTimeout = 5000;  // 5 seconds
+unsigned long alarmStartTime = 0;
+volatile boolean alarm_state = false;
 
 /* Digital input ports */
 byte reportPINs[TOTAL_PORTS];       // 1 = report this port, 0 = silence
@@ -223,26 +234,14 @@ int xTimerStartTime = 0;
 boolean zTimerStarted = false;
 boolean xTimerStarted = false;
 boolean triggerAlarm = false;
+boolean alarmTriggered = false;
 
-/*==============================================================================
- * LIGHT/SOUND CONSTANTS
- *============================================================================*/
-//light configurations
-int light_front=13;
-int light_right=12;
-int light_left=11;
-int light_back=10;
-//sound configuration
-int speakerOut = 8; // loud speaker
-int maxAlarmTimeout = 5000;  // 5 seconds
-int alarmStartTime = 0;
-volatile boolean alarm_state = false;
+
 
 /*==============================================================================
  * FUNCTIONS
  *============================================================================*/
 
-#ifdef BLE_FIRMATA
 void readAndReportData(byte address, int theRegister, byte numBytes) {
   // allow I2C requests that don't require a register read
   // for example, some devices using an interrupt pin to signify new data available
@@ -668,6 +667,24 @@ void disableI2CPins() {
     // Wire.end();
 }
 
+/*==============================================================================
+ * ISRs()
+ *============================================================================*/
+ 
+void int0_bh()
+{
+  regValInt = readRegister(INT_SOURCE);
+  regValTrans = readRegister(TRANSIENT_SRC);
+  // Read and print accel data
+  readAndSaveAccelValues();
+  int_status &= ~INT_EN_TRANS;
+}
+
+void int1_bh()
+{
+  int_status &= ~INT_EN_ASLP;
+}
+
 void systemResetCallback()
 {
   // initialize a defalt state
@@ -700,57 +717,25 @@ void systemResetCallback()
   analogInputsToReport = 0;
 }
 
-#endif /* BLE_FIRMATA */
-
-/*==============================================================================
- * ISRs()
- *============================================================================*/
- 
-void int0_bh()
-{
-  regValInt = readRegister(INT_SOURCE);
-  regValTrans = readRegister(TRANSIENT_SRC);
-  // Read and print accel data
-  readAndSaveAccelValues();
-  int_status &= ~INT_EN_TRANS;
-}
-
-void int1_bh()
-{
-  int_status &= ~INT_EN_ASLP;
-}
-
 
 /*==============================================================================
  * SETUP()
  *============================================================================*/
 void setup() 
 {
-#ifdef BLE_FIRMATA
-  BleFirmata.attach(ANALOG_MESSAGE, analogWriteCallback);
-  BleFirmata.attach(DIGITAL_MESSAGE, digitalWriteCallback);
-  BleFirmata.attach(REPORT_ANALOG, reportAnalogCallback);
-  BleFirmata.attach(REPORT_DIGITAL, reportDigitalCallback);
-  BleFirmata.attach(SET_PIN_MODE, setPinModeCallback);
-  BleFirmata.attach(START_SYSEX, sysexCallback);
-  BleFirmata.attach(SYSTEM_RESET, systemResetCallback);
-#endif /* BLE_FIRMATA */
-
-  //systemResetCallback();  // reset to default config
+  systemResetCallback();  // reset to default config
 
   // Enable serial debug
   Serial.begin(baudRate);
-#ifndef TEST_ACCELEROMETER_WITHOUT_BT   
-  // Init. BLE and start BLE library.
-  ble_begin();
-#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
 
-  pinMode(DIGITAL_OUT_PIN, OUTPUT);
-  pinMode(light_front, OUTPUT);
-  pinMode(light_left, OUTPUT);
-  pinMode(light_right, OUTPUT);
-  pinMode(light_back, OUTPUT);  
-  pinMode(speakerOut, OUTPUT);  
+   // Init. BLE and start BLE library.
+  ble_begin();
+
+  pinMode(LIGHT_FRONT, OUTPUT);
+  pinMode(LIGHT_LEFT, OUTPUT);
+  pinMode(LIGHT_RIGHT, OUTPUT);
+  pinMode(LIGHT_BACK, OUTPUT);  
+//  pinMode(SPEAKER_OUT, OUTPUT);  
   
   // Set LED blink timer for a value of 250 ms if enabled from phone
   noInterrupts();
@@ -767,11 +752,13 @@ void setup()
   // enable timer compare interrupt
   TIMSK1 |= (1 << OCIE1A);  
   interrupts();
-#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
-  Wire.begin(); //Join the bus as a master
+  Wire.begin(); //Join the bus as a master  
+//#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
   initMMA8452(); //Test and intialize the MMA8452  
   //these interrupts causes the board to keep resetting
-#endif /* TEST_BT_WITHOUT_ACCELEROMETER */  
+//#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
+  
+  
 }
 
 void readAndSaveAccelValues()
@@ -787,6 +774,7 @@ void initAccelData()
 { 
   // Initialize current accel values
   readAndSaveAccelValues();
+
   initAccelG[0]=accelG[0];
   initAccelG[1]=accelG[1];
   initAccelG[2]=accelG[2];
@@ -810,42 +798,56 @@ void setAccelConfigParm(boolean flag)
    TRUE if we think someone is moving the bike and FALSE otherwise. */
 boolean monitorAccelData()
 {
-  if (zTimerStarted) {
-    if ((millis() - zTimerStartTime) > zTimerVal) {
-      Serial.print("zTranCount = ");
-      Serial.println(zTranCount);
-      if (zTranCount >= maxzTranCount) {
-        triggerAlarm = true;   
-        Serial.println("Z-axis alarm");        
+  if(!alarmTriggered && millis()>maxAlarmTimeout)
+  {
+    if (zTimerStarted) {
+      if ((millis() - zTimerStartTime) > zTimerVal) {
+//        Serial.print("zTranCount = ");
+//        Serial.println(zTranCount);
+        if (zTranCount >= maxzTranCount) {
+          triggerAlarm = true;   
+//          Serial.println("Z-axis alarm");        
+        }
+        zTimerStarted = false;
+//        Serial.println("Z-timer stopped");
       }
+    } else if (xTimerStarted) {
+      if ((millis() - xTimerStartTime) > xTimerVal) {    
+        float xPolRatio = xTranOneCount/xTranCount;
+//        Serial.print("xPolRatio = ");
+//        Serial.print(xPolRatio, 4);
+//        Serial.print(", xTranOneCount = ");
+//        Serial.print(xTranOneCount);
+//        Serial.print(", xTranZeroCount = ");
+//        Serial.print(xTranZeroCount);
+//        Serial.print(", xTranCount = ");
+//        Serial.println(xTranCount);
+        if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
+          triggerAlarm = true;
+//          Serial.println("X-axis alarm");
+        }   
+        xTimerStarted = false;  
+//        Serial.println("X-timer stopped");      
+      }
+    }
+  }
+  else
+  {
+    if (zTimerStarted) {
       zTimerStarted = false;
-      Serial.println("Z-timer stopped");
+//      Serial.println("[monitorAccelData]: Ignoring Z trigger!!!");
     }
-  } else if (xTimerStarted) {
-    if ((millis() - xTimerStartTime) > xTimerVal) {    
-      float xPolRatio = xTranOneCount/xTranCount;
-      Serial.print("xPolRatio = ");
-      Serial.print(xPolRatio, 4);
-      Serial.print(", xTranOneCount = ");
-      Serial.print(xTranOneCount);
-      Serial.print(", xTranZeroCount = ");
-      Serial.print(xTranZeroCount);
-      Serial.print(", xTranCount = ");
-      Serial.println(xTranCount);
-      if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
-        triggerAlarm = true;
-        Serial.println("X-axis alarm");
-      }   
-      xTimerStarted = false;  
-      Serial.println("X-timer stopped");      
-    }
+    if (xTimerStarted) {
+      xTimerStarted = false;
+//      Serial.println("[monitorAccelData]: Ignoring X trigger!!!");
+    } 
   }
 }
 
 void resetPins()
 {
   analogWrite(PWM_PIN, PWM_LEVEL_LOW);
-  digitalWrite(DIGITAL_OUT_PIN, LOW);
+//  digitalWrite(DIGITAL_OUT_PIN, LOW);
 }
 
 ISR(TIMER1_COMPA_vect) {
@@ -856,6 +858,7 @@ ISR(TIMER1_COMPA_vect) {
   }
 }
 
+
 void handleShowLightCmd(byte value)
 {
   if (value == TRUE) {
@@ -863,21 +866,22 @@ void handleShowLightCmd(byte value)
   } else {
     showLight = false;
     prevLightVal = LOW; 
-    digitalWrite(DIGITAL_OUT_PIN, LOW);
+//    digitalWrite(DIGITAL_OUT_PIN, LOW);
   } 
 }
 
 void activate_light_only(boolean state){
-  digitalWrite(light_front, state);   // set the LED to state
-  digitalWrite(light_right, state);   // set the LED to state
-  digitalWrite(light_left, state);   // set the LED to state
-  digitalWrite(light_back, state);   // set the LED to state
+  digitalWrite(LIGHT_FRONT, state);   // set the LED to state
+  digitalWrite(LIGHT_RIGHT, state);   // set the LED to state
+  digitalWrite(LIGHT_LEFT, state);   // set the LED to state
+  digitalWrite(LIGHT_BACK, state);   // set the LED to state
   delay(100);              // wait a lil while. 1000 is one second
 }
 
 void activate_sound_only(boolean state){
-  digitalWrite(speakerOut,state);
+//  digitalWrite(speakerOut,state);
 }
+
 
 void alarm_handler(boolean active) {  
   prevLightVal = active;
@@ -886,8 +890,7 @@ void alarm_handler(boolean active) {
     if (active == true) {    
       activate_sound_only(active);
       activate_light_only(active);
-      alarm_state = true;
-      alarmStartTime = millis();     
+      alarm_state = true;   
       Serial.println("Alarm triggered!!");       
     } else {
       activate_light_only(active);
@@ -911,31 +914,19 @@ void sendWelcomeMsg()
   }       
 }
 
-void clear_x_alarm_values()
-{
-  
-}
-
 /*==============================================================================
  * LOOP()
  *============================================================================*/
 void loop() 
 { 
-  monitorAccelData();
-  
-  if (triggerAlarm) {
-    alarm_handler(true); 
-    triggerAlarm = false;
+  unsigned long mil=0;
+  static int initialized=false;
+
+//********************* BLUETOOTH *******************
+  if (!ble_connected()) {
+    systemResetCallback();
   }
-  
-  if (alarm_state == true) {
-    if ((millis() - alarmStartTime) >= maxAlarmTimeout) {
-      alarm_state = false;    
-      alarm_handler(false);
-    }
-  }
-   
-#ifndef TEST_ACCELEROMETER_WITHOUT_BT
+
   // Byte 0: Command
   // Byte 1: Command Value
 
@@ -959,7 +950,7 @@ void loop()
       case BLE_CMD_PHONE_TO_TILT_RESET:
         // Reset PINs. Sent from device upon connection. Also send a welcome message.
         resetPins();      
-        sendWelcomeMsg();
+        //sendWelcomeMsg();
         break;
       
       case 0x04:
@@ -969,21 +960,52 @@ void loop()
         break;  
     }
   }
-#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
 
-#ifndef TEST_BT_WITHOUT_ACCELEROMETER 
-  if (!ble_connected()) {
-    //systemResetCallback();
-    if (!accelConfgd) {
-      initAccelData(); 
-    } else if (deviceSecurityEnabled) {
-      monitorAccelData(); 
-    }
-  } else {
-    if (accelConfgd) {
-      setAccelConfigParm(false);  
-    } 
+  //Allow BLE Shield to send/receive data
+  ble_do_events();
+//********************* BLUETOOTH *******************
+
+  monitorAccelData();
+  
+  if (triggerAlarm) {
+    alarmStartTime = millis(); 
+    alarm_handler(true);
+    alarm_state=true;
+
+    triggerAlarm = false;
+    alarmTriggered=true;
+    
+//    Serial.println("Mil @ alarm triggered: ");    
+//    Serial.println(alarmStartTime);
   }
+  
+  if (alarm_state == true) {
+    if ((millis() - alarmStartTime) >= maxAlarmTimeout) {
+      alarm_state = false;    
+      alarm_handler(false);
+      alarmTriggered=false;
+      mil=millis();
+      
+//      Serial.print("Mil @ alarm stopped: ");    
+//      Serial.println(mil);
+//      Serial.print("alarmStartTime: ");          
+//      Serial.println(alarmStartTime);
+    }
+  }
+
+#ifndef TEST_BT_WITHOUT_ACCELEROMETER1
+//  if (!ble_connected()) {
+//    systemResetCallback();
+//    if (!accelConfgd) {
+//      initAccelData(); 
+//    } else if (deviceSecurityEnabled) {
+//      monitorAccelData(); 
+//    }
+//  } else {
+//    if (accelConfgd) {
+//      setAccelConfigParm(false);  
+//    } 
+//  }
 
   // Read INT SOURCE register
   int_status = readRegister(INT_SOURCE);
@@ -999,28 +1021,29 @@ void loop()
     xtran = CHECKBIT(xtran_bit, regValTrans);
     xtran_pol = CHECKBIT(xtran_pol_bit, regValTrans); 
     
-    Serial.print("xtran ");
-    Serial.print(xtran);
-    Serial.print(" xtran_pol ");
-    Serial.print(xtran_pol);
-    Serial.print(" ytran ");
-    Serial.print(ytran);
-    Serial.print(" ytran_pol ");
-    Serial.print(ytran_pol);
-    Serial.print(" ztran ");
-    Serial.print(ztran);
-    Serial.print(" ztran_pol ");
-    Serial.println(ztran_pol);    
+//    Serial.print("xtran ");
+//    Serial.print(xtran);
+//    Serial.print(" xtran_pol ");
+//    Serial.print(xtran_pol);
+//    Serial.print(" ytran ");
+//    Serial.print(ytran);
+//    Serial.print(" ytran_pol ");
+//    Serial.print(ytran_pol);
+//    Serial.print(" ztran ");
+//    Serial.print(ztran);
+//    Serial.print(" ztran_pol ");
+//    Serial.println(ztran_pol);    
+    
 
     if (ztran) {
       if (!zTimerStarted) {
         zTimerStarted = true;
         zTranCount = 0;
         zTimerStartTime = millis();
-        Serial.println("Z-timer started");        
+//        Serial.println("Z-timer started");        
       } else {
         zTranCount++;
-        Serial.println("Z received");
+//        Serial.println("Z received");
       }  
     }
     
@@ -1031,7 +1054,7 @@ void loop()
         xTranZeroCount = 0;
         xTranOneCount = 1; 
         xTimerStartTime = millis();  
-        Serial.println("X-timer started by x-one");
+//        Serial.println("X-timer started by x-one");
       } else {
         xTranOneCount++;
         xTranCount++;
@@ -1043,7 +1066,7 @@ void loop()
         xTranZeroCount = 1;
         xTranOneCount = 0;   
         xTimerStartTime = millis();          
-        Serial.println("X-timer started by x-zero");   
+//        Serial.println("X-timer started by x-zero");   
       } else {
         xTranZeroCount++;
         xTranCount++;
@@ -1054,19 +1077,7 @@ void loop()
   if (int_status&INT_EN_ASLP) {
       int1_bh();
   }
-  
-#else
- #ifndef TEST_ACCELEROMETER_WITHOUT_BT
-  if (!ble_connected()) {
-    systemResetCallback();
-  }
- #endif /*  TEST_ACCELEROMETER_WITHOUT_BT */  
-#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
-
-#ifndef TEST_ACCELEROMETER_WITHOUT_BT  
-  // Allow BLE Shield to send/receive data
-  ble_do_events();
-#endif /* TEST_ACCELEROMETER_WITHOUT_BT */
+#endif
 
 // NOT adding any additional delays
 }
