@@ -15,8 +15,8 @@
 //#define DEBUG
 //#define FREEFALL_MOTION_ENABLE
 //#define BLE_FIRMATA
-#define TEST_BT_WITHOUT_ACCELEROMETER
-//#define TEST_ACCELEROMETER_WITHOUT_BT
+//#define TEST_BT_WITHOUT_ACCELEROMETER
+#define TEST_ACCELEROMETER_WITHOUT_BT
 
 /*==============================================================================
  * ENUMERATIONS
@@ -38,7 +38,7 @@ typedef enum ble_cmd_tilt_to_phone_e {
 // Bit-wise macros
 #define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
 #define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
-#define CHECKBIT(x,y) (x & (y))   //True if bit y of byte x=1. 
+#define CHECKBIT(x,y) ((y >> x) & 0x1)   //True if bit y of byte x=1. 
 
 /*==============================================================================
  * GLOBAL VARIABLES
@@ -164,8 +164,8 @@ boolean playSound = false;
 #define HPF_BYP 0x00
 #define DBCNTM_TRANS  0x00 
 // A working combination is observed at threshold = 4 and count = 5
-#define TRANS_THS_0_5_G  0x06
-#define TRANS_DEBOUNCE_50_HZ_20_MS  0x5
+#define TRANS_THS_0_5_G  0x03
+#define TRANS_DEBOUNCE_50_HZ_20_MS  0x3
 //The SRC registers for clearing and reading status of interrupts
 #define SYSMOD 0x0B
 #define TRANSIENT_SRC 0x1E     
@@ -194,6 +194,36 @@ float initAccelG[3];
 // Now we'll calculate the accleration value into actual g's
 float accelG[3];  // Stores the real accel value in g's
 int baudRate = 9600;
+int regValTrans = 0;
+int regValInt = 0;
+int ztran = 0;
+int ztran_pol = 0;
+int ytran = 0;
+int ytran_pol = 0;
+int xtran = 0;
+int xtran_pol = 0;
+int ztran_bit = 5;
+int ztran_pol_bit = 4;
+int ytran_bit = 3;
+int ytran_pol_bit = 2;
+int xtran_bit = 1;
+int xtran_pol_bit = 0;   
+
+int zTranCount = 0;
+int maxzTranCount = 0;
+float xTranCount = 0;
+float xTranZeroCount = 0;
+float xTranOneCount = 0;
+float minxThresh = 0.4;
+float maxxThresh = 0.6;
+int zTimerVal = 250;  // 0.5 second or 500000 us
+int xTimerVal = 500;  // 3 seconds or 3000000 us
+int zTimerStartTime = 0;
+int xTimerStartTime = 0;
+boolean zTimerStarted = false;
+boolean xTimerStarted = false;
+boolean triggerAlarm = false;
+
 
 /*==============================================================================
  * FUNCTIONS
@@ -630,16 +660,10 @@ void disableI2CPins() {
  
 void int0_bh()
 {
-  int regVal1 = 0;
-  int regVal2 = 0;
-  regVal1 = readRegister(TRANSIENT_SRC);
-  regVal2 = readRegister(INT_SOURCE);
-  Serial.print("transSource : ");
-  Serial.println(regVal1,BIN);
-
+  regValInt = readRegister(INT_SOURCE);
+  regValTrans = readRegister(TRANSIENT_SRC);
   // Read and print accel data
   readAndSaveAccelValues();
-
   int_status &= ~INT_EN_TRANS;
 }
 
@@ -680,9 +704,28 @@ void systemResetCallback()
   analogInputsToReport = 0;
 }
 
+
 /*==============================================================================
  * SETUP()
  *============================================================================*/
+//void xTimerInterruptHandler()
+//{
+//  xTimerStarted = false;
+//  float xPolRatio = xTranOneCount/xTranCount;
+//  if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
+//    triggerAlarm = true;
+//  }  
+//}
+//
+//void zTimerInterruptHandler()
+//{
+//  Serial.println("This timer only triggers once."); 
+//  zTimerStarted = false;
+//  if (zTranCount > maxzTranCount) {
+//    triggerAlarm = true;
+//  }
+//}
+
 void setup() 
 {
 #ifdef BLE_FIRMATA
@@ -699,7 +742,6 @@ void setup()
 
   // Enable serial debug
   Serial.begin(baudRate);
-  Serial.println("Console is UP!!!");
 #ifndef TEST_ACCELEROMETER_WITHOUT_BT   
   // Init. BLE and start BLE library.
   ble_begin();
@@ -721,13 +763,13 @@ void setup()
   TCCR1B |= (1 << CS12) | (1 << CS10);  
   // enable timer compare interrupt
   TIMSK1 |= (1 << OCIE1A);  
-  
   interrupts();
-  Wire.begin(); //Join the bus as a master
-  
 #ifndef TEST_BT_WITHOUT_ACCELEROMETER  
+  Wire.begin(); //Join the bus as a master
   initMMA8452(); //Test and intialize the MMA8452  
-#endif /* TEST_BT_WITHOUT_ACCELEROMETER */  
+  //these interrupts causes the board to keep resetting
+#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
+  
 }
 
 void readAndSaveAccelValues()
@@ -829,11 +871,52 @@ void sendWelcomeMsg()
   }       
 }
 
+void clear_x_alarm_values()
+{
+  
+}
+
 /*==============================================================================
  * LOOP()
  *============================================================================*/
 void loop() 
-{
+{ 
+  if (zTimerStarted) {
+    if ((millis() - zTimerStartTime) > zTimerVal) {
+      Serial.print("zTranCount = ");
+      Serial.println(zTranCount);
+      if (zTranCount >= maxzTranCount) {
+        triggerAlarm = true;   
+        Serial.println("Z-axis alarm");        
+      }
+      zTimerStarted = false;
+      Serial.println("Z-timer stopped");
+    }
+  } else if (xTimerStarted) {
+    if ((millis() - xTimerStartTime) > xTimerVal) {    
+      float xPolRatio = xTranOneCount/xTranCount;
+      Serial.print("xPolRatio = ");
+      Serial.print(xPolRatio, 4);
+      Serial.print(", xTranOneCount = ");
+      Serial.print(xTranOneCount);
+      Serial.print(", xTranZeroCount = ");
+      Serial.print(xTranZeroCount);
+      Serial.print(", xTranCount = ");
+      Serial.println(xTranCount);
+      if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
+        triggerAlarm = true;
+        Serial.println("X-axis alarm");
+      }   
+      xTimerStarted = false;  
+      Serial.println("X-timer stopped");      
+    }
+  }
+  
+  if (triggerAlarm) {
+    Serial.println("Alarm triggered!!"); 
+    triggerAlarm = false;
+  }
+  
 #ifndef BLE_FIRMATA
  #ifndef TEST_ACCELEROMETER_WITHOUT_BT
   // Byte 0: Command
@@ -910,7 +993,7 @@ void loop()
   }  
 #endif /* BLE_FIRMATA */
 
-#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
+#ifndef TEST_BT_WITHOUT_ACCELEROMETER 
   if (!ble_connected()) {
     systemResetCallback();
     if (!accelConfgd) {
@@ -924,15 +1007,77 @@ void loop()
     } 
   }
 
+  // Read INT SOURCE register
   int_status = readRegister(INT_SOURCE);
-  if (int_status&INT_EN_TRANS) {
-      int0_bh();  
+  
+  // Detect transient interrupt
+  if (int_status & INT_EN_TRANS) {
+    int0_bh(); 
+ 
+    ztran = CHECKBIT(ztran_bit, regValTrans);
+    ztran_pol = CHECKBIT(ztran_pol_bit, regValTrans);
+    ytran = CHECKBIT(ytran_bit, regValTrans);
+    ytran_pol = CHECKBIT(ytran_pol_bit, regValTrans);
+    xtran = CHECKBIT(xtran_bit, regValTrans);
+    xtran_pol = CHECKBIT(xtran_pol_bit, regValTrans); 
+    
+    Serial.print("xtran ");
+    Serial.print(xtran);
+    Serial.print(" xtran_pol ");
+    Serial.print(xtran_pol);
+    Serial.print(" ytran ");
+    Serial.print(ytran);
+    Serial.print(" ytran_pol ");
+    Serial.print(ytran_pol);
+    Serial.print(" ztran ");
+    Serial.print(ztran);
+    Serial.print(" ztran_pol ");
+    Serial.println(ztran_pol);    
+    
+
+    if (ztran) {
+      if (!zTimerStarted) {
+        zTimerStarted = true;
+        zTranCount = 0;
+        zTimerStartTime = millis();
+        Serial.println("Z-timer started");        
+      } else {
+        zTranCount++;
+        Serial.println("Z received");
+      }  
+    }
+    
+    if (xtran_pol == 0x1) {
+      if (!xTimerStarted) {
+        xTimerStarted = true;
+        xTranCount = 1;
+        xTranZeroCount = 0;
+        xTranOneCount = 1; 
+        xTimerStartTime = millis();  
+        Serial.println("X-timer started by x-one");
+      } else {
+        xTranOneCount++;
+        xTranCount++;
+      }
+    } else {
+      if (!xTimerStarted) {
+        xTimerStarted = true;
+        xTranCount = 1;  
+        xTranZeroCount = 1;
+        xTranOneCount = 0;   
+        xTimerStartTime = millis();          
+        Serial.println("X-timer started by x-zero");   
+      } else {
+        xTranZeroCount++;
+        xTranCount++;
+      }
+    }    
   }
   
   if (int_status&INT_EN_ASLP) {
       int1_bh();
   }
-    
+  
 #else
  #ifndef TEST_ACCELEROMETER_WITHOUT_BT
   if (!ble_connected()) {
@@ -1034,7 +1179,7 @@ void initMMA8452()
   val = (INT_EN_TRANS|INT_EN_ASLP);
   writeRegister(CTRL_REG4, val);
 
-  MMA8452Active();  // Set to active to start reading
+  MMA8452Active();  // Set to active to start reading  
 }
 
 // Sets the MMA8452 to standby mode. It must be in standby to change most register settings
@@ -1072,9 +1217,9 @@ byte readRegister(byte addressToRead)
 {
   Wire.beginTransmission(MMA8452_ADDRESS);
   Wire.write(addressToRead);
-  Wire.endTransmission(false); //endTransmission but keep the connection active
+  Wire.endTransmission(false); //endTransmission but keep the connection active 
   Wire.requestFrom(MMA8452_ADDRESS, 1); //Ask for 1 byte, once done, bus is released by default
-  while(!Wire.available()) ; //Wait for the data to come back
+  while(!Wire.available()) ; //Wait for the data to come back 
   return Wire.read(); //Return this one byte
 }
 
