@@ -1,5 +1,5 @@
 //
-//  TiltViewController.h
+//  TiltConnectedController
 //  Tilt
 //
 //  Created by Abhishek Sen on 12/27/13.
@@ -8,6 +8,6 @@
 
 #import <UIKit/UIKit.h>
 
-@interface TiltViewController : UIViewController
-
+@interface TiltConnectedController : UIViewController
+//- (void)initiateConnection;
 @end
