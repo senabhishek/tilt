@@ -44,6 +44,7 @@ BOOL soundVal = FALSE;
 //  self.locationManager = [[CLLocationManager alloc] init];
 //  self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
 //  [self.locationManager startUpdatingLocation];
+  [self.navigationItem setHidesBackButton:YES];
 }
 
 - (void)didReceiveMemoryWarning

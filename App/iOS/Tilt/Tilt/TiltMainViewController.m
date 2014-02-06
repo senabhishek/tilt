@@ -55,6 +55,7 @@ NSInteger const connectionTimeout = 3;
   UInt8 buf[] = {kResetPins, 0x00, 0x00};
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
+  [self performSegueWithIdentifier: @"segueToTiltConnectedVC" sender: self];
 }
 
 - (void)bleDidChangedStateToPoweredOn
@@ -116,7 +117,6 @@ NSInteger const connectionTimeout = 3;
                                           cancelButtonTitle:@"Dismiss"
                                           otherButtonTitles:nil];
     [alert show];
-    [self performSegueWithIdentifier: @"segueToTiltConnectedVC" sender: self];
   }
 }
 
