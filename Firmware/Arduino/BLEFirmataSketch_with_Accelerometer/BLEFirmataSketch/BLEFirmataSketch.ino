@@ -109,7 +109,7 @@ unsigned long currentMillis;        // store the current value from millis()
 unsigned long previousMillis;       // for comparison with currentMillis
 int samplingInterval = 38;          // how often to run the main loop (in ms)
 boolean showLight = false;
-volatile int prevLightVal = LOW;
+volatile boolean prevLightVal = false;
 boolean playSound = false;
 
 /*==============================================================================
@@ -224,6 +224,19 @@ boolean zTimerStarted = false;
 boolean xTimerStarted = false;
 boolean triggerAlarm = false;
 
+/*==============================================================================
+ * LIGHT/SOUND CONSTANTS
+ *============================================================================*/
+//light configurations
+int light_front=13;
+int light_right=12;
+int light_left=11;
+int light_back=10;
+//sound configuration
+int speakerOut = 8; // loud speaker
+int maxAlarmTimeout = 5000;  // 5 seconds
+int alarmStartTime = 0;
+volatile boolean alarm_state = false;
 
 /*==============================================================================
  * FUNCTIONS
@@ -748,6 +761,11 @@ void setup()
 #endif /* TEST_ACCELEROMETER_WITHOUT_BT */
 
   pinMode(DIGITAL_OUT_PIN, OUTPUT);
+  pinMode(light_front, OUTPUT);
+  pinMode(light_left, OUTPUT);
+  pinMode(light_right, OUTPUT);
+  pinMode(light_back, OUTPUT);  
+  pinMode(speakerOut, OUTPUT);  
   
   // Set LED blink timer for a value of 250 ms if enabled from phone
   noInterrupts();
@@ -769,6 +787,7 @@ void setup()
   initMMA8452(); //Test and intialize the MMA8452  
   //these interrupts causes the board to keep resetting
 #endif /* TEST_BT_WITHOUT_ACCELEROMETER */
+  
   
 }
 
@@ -818,69 +837,6 @@ void setAccelConfigParm(boolean flag)
    TRUE if we think someone is moving the bike and FALSE otherwise. */
 boolean monitorAccelData()
 {
-  boolean triggerAlarm = false;
-  
-  // Read current accel values
-  readAndSaveAccelValues();
-    
-  if (abs(initAccelG[0]-accelG[0])>=threshX ||
-       abs(initAccelG[0]-accelG[0])>=threshY ||
-       abs(initAccelG[0]-accelG[0])>=threshZ) {
-     triggerAlarm = true;
-   }  
-   
-   return triggerAlarm;
-}
-
-void resetPins()
-{
-  analogWrite(PWM_PIN, PWM_LEVEL_LOW);
-  digitalWrite(DIGITAL_OUT_PIN, LOW);
-}
-
-ISR(TIMER1_COMPA_vect) {
-  // Generates pulse wave of frequency 4 Hz
-  if (showLight) {    
-    prevLightVal = (prevLightVal == HIGH) ? LOW : HIGH;    
-    digitalWrite(DIGITAL_OUT_PIN, prevLightVal);
-  }
-}
-
-void handleShowLightCmd(byte value)
-{
-  if (value == TRUE) {
-    showLight = true;
-  } else {
-    showLight = false;
-    prevLightVal = LOW; 
-    digitalWrite(DIGITAL_OUT_PIN, LOW);
-  } 
-}
-
-void handlePlaySoundCmd(byte value)
-{
-  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
-//  playSound = (value == 0x01) ? true : false;
-}
-
-void sendWelcomeMsg()
-{
-  ble_write(BLE_CMD_TILT_TO_PHONE_GENERAL_MSG);
-  for (int i = 0; i < strlen(welcomeString); i++) {
-    ble_write(welcomeString[i]);  
-  }       
-}
-
-void clear_x_alarm_values()
-{
-  
-}
-
-/*==============================================================================
- * LOOP()
- *============================================================================*/
-void loop() 
-{ 
   if (zTimerStarted) {
     if ((millis() - zTimerStartTime) > zTimerVal) {
       Serial.print("zTranCount = ");
@@ -911,12 +867,103 @@ void loop()
       Serial.println("X-timer stopped");      
     }
   }
+}
+
+void resetPins()
+{
+  analogWrite(PWM_PIN, PWM_LEVEL_LOW);
+  digitalWrite(DIGITAL_OUT_PIN, LOW);
+}
+
+ISR(TIMER1_COMPA_vect) {
+  // Generates pulse wave of frequency 4 Hz
+  if (alarm_state) {    
+    prevLightVal = !prevLightVal;
+    activate_light_only(prevLightVal);  
+  }
+}
+
+
+void handleShowLightCmd(byte value)
+{
+  if (value == TRUE) {
+    showLight = true;
+  } else {
+    showLight = false;
+    prevLightVal = LOW; 
+    digitalWrite(DIGITAL_OUT_PIN, LOW);
+  } 
+}
+
+void activate_light_only(boolean state){
+  digitalWrite(light_front, state);   // set the LED to state
+  digitalWrite(light_right, state);   // set the LED to state
+  digitalWrite(light_left, state);   // set the LED to state
+  digitalWrite(light_back, state);   // set the LED to state
+  delay(100);              // wait a lil while. 1000 is one second
+}
+
+void activate_sound_only(boolean state){
+  digitalWrite(speakerOut,state);
+}
+
+
+void alarm_handler(boolean active) {  
+  prevLightVal = active;
+  
+  if (alarm_state == false) {
+    if (active == true) {    
+      activate_sound_only(active);
+      activate_light_only(active);
+      alarm_state = true;
+      alarmStartTime = millis();     
+      Serial.println("Alarm triggered!!");       
+    } else {
+      activate_light_only(active);
+      activate_sound_only(active);    
+      Serial.println("Alarm disabled!!");             
+    }
+  } 
+}
+
+void handlePlaySoundCmd(byte value)
+{
+  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
+//  playSound = (value == 0x01) ? true : false;
+}
+
+void sendWelcomeMsg()
+{
+  ble_write(BLE_CMD_TILT_TO_PHONE_GENERAL_MSG);
+  for (int i = 0; i < strlen(welcomeString); i++) {
+    ble_write(welcomeString[i]);  
+  }       
+}
+
+void clear_x_alarm_values()
+{
+  
+}
+
+/*==============================================================================
+ * LOOP()
+ *============================================================================*/
+void loop() 
+{ 
+  monitorAccelData();
   
   if (triggerAlarm) {
-    Serial.println("Alarm triggered!!"); 
+    alarm_handler(true); 
     triggerAlarm = false;
   }
   
+  if (alarm_state == true) {
+    if ((millis() - alarmStartTime) >= maxAlarmTimeout) {
+      alarm_state = false;    
+      alarm_handler(false);
+    }
+  }
+   
 #ifndef BLE_FIRMATA
  #ifndef TEST_ACCELEROMETER_WITHOUT_BT
   // Byte 0: Command
