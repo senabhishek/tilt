@@ -76,6 +76,7 @@ NSInteger const connectionTimeout = 3;
 
 - (void)initiateConnection
 {
+  ble.delegate = self;
   // Peripherals actively in use. Cancel the connection in order to create a new connection.
   if (ble.activePeripheral) {
     if (ble.activePeripheral.state == CBPeripheralStateConnected) {
@@ -130,10 +131,11 @@ NSInteger const connectionTimeout = 3;
 
 - (void)prepareForSegue:(UIStoryboardSegue *)segue sender:(id)sender
 {
-//  if ([[segue identifier] isEqualToString:@"segueToTiltConnectedVC"])
-//  {
-//    TiltConnectedController *vc = [segue destinationViewController];
-//  }
+  if ([[segue identifier] isEqualToString:@"segueToTiltConnectedVC"])
+  {
+//    UIViewController *destVC = [segue destinationViewController];
+//    [destVC performSelector:@selector(setBle:)];
+  }
 }
 
 - (IBAction)goBackToMainView: (UIStoryboardSegue*)segue

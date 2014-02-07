@@ -24,13 +24,13 @@
 @end
 
 @implementation TiltConnectedController
-
 @synthesize ble;
 @synthesize btnPlaySound;
 @synthesize btnShowLight;
 @synthesize lblRSSI;
 BOOL lightVal = FALSE;
 BOOL soundVal = FALSE;
+BOOL lightSoundVal = FALSE;
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -161,11 +161,11 @@ BOOL soundVal = FALSE;
 - (IBAction)showLightSound:(id)sender {
 
   UInt8 buf[3] = {kLightSound, 0x00 , 0x00};
-  if (lightVal == FALSE) {
+  if (lightSoundVal == FALSE) {
     buf[1] = TRUE;
-    lightVal = TRUE;
+    lightSoundVal = TRUE;
   } else {
-    lightVal = FALSE;
+    lightSoundVal = FALSE;
   }
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
@@ -203,4 +203,6 @@ BOOL soundVal = FALSE;
 //    [unwindSegue perform];
 //  }
 //}
+
+
 @end
