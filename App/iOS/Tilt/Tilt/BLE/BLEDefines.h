@@ -7,7 +7,8 @@
 typedef NS_ENUM(NSUInteger, BleCmdPhoneToTilt) {
   kTurnOnLight = 0x0,
   kPlaySound,
-  kResetPins
+  kResetPins,
+  kLightSound
 } NS_AVAILABLE(NA, 7_0);
 
 typedef NS_ENUM(NSUInteger, BleCmdTiltToPhone) {

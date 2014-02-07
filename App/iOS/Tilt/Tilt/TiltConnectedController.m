@@ -16,6 +16,9 @@
 @property (weak, nonatomic) IBOutlet UIButton *btnPlaySound;
 @property (weak, nonatomic) IBOutlet UIButton *btnShowLight;
 @property (weak, nonatomic) IBOutlet UILabel *lblRSSI;
+@property (weak, nonatomic) IBOutlet UIButton *btnDisconnect;
+@property (weak, nonatomic) IBOutlet UILabel *lblDisconnect;
+@property (weak, nonatomic) IBOutlet UIButton *btnSoundLight;
 @property (strong, nonatomic) BLE *ble;
 @property (strong, nonatomic) CLLocationManager *locationManager;
 @end
@@ -67,11 +70,7 @@ BOOL soundVal = FALSE;
 - (void)bleDidDisconnect
 {
   NSLog(@"->Disconnected");
-//  lblConnectBtn.text = @"Connect";
-//  lblRSSI.text = @"";
-//  [btnShowLight setEnabled:NO];
-//  [btnPlaySound setEnabled:NO];
-//  [rssiTimer invalidate];
+  // Go back to main screen
   [self goBackToMainView];
 }
 
@@ -127,46 +126,6 @@ BOOL soundVal = FALSE;
   }
 }
 
-//- (void)bleDidChangedStateToPoweredOn
-//{
-//  [self initiateConnection];
-//}
-
-//- (void)initiateConnection
-//{
-//  // Peripherals actively in use. Cancel the connection in order to create a new connection.
-//  if (ble.activePeripheral) {
-//    if (ble.activePeripheral.state == CBPeripheralStateConnected) {
-//      [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
-////      lblConnectBtn.text = @"Connect";
-//      return;
-//    }
-//  }
-//  
-//  // Set the list of existing peripherals to nil
-//  if (ble.peripherals) {
-//    ble.peripherals = nil;
-//  }
-//  
-//  // Try to find peripherals for the next 2 seconds
-//  if ([ble findBLEPeripherals:connectionTimeout] != -1) {
-////    [btnConnect setEnabled:false];
-////    lblConnectBtn.text = @"Connecting ...";
-//    // Start connection timer for connectionTimeout value
-//    [NSTimer scheduledTimerWithTimeInterval:(float)connectionTimeout target:self selector:@selector(connectionTimer:) userInfo:nil repeats:NO];
-//  } else {
-//    [btnShowLight setEnabled:NO];
-//    [btnPlaySound setEnabled:NO];
-////    lblConnectBtn.text = @"Connect";    
-//    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
-//                                                    message:@"Please make sure Bluetooth is enabled from the Settings App."
-//                                                   delegate:nil
-//                                          cancelButtonTitle:@"Dismiss"
-//                                          otherButtonTitles:nil];
-//    [alert show];
-//  }
-//}
-
 - (IBAction)playSoundToFindBike:(id)sender forEvent:(UIEvent *)event
 {
   UInt8 buf[3] = {kPlaySound, 0x00 , 0x00};
@@ -193,29 +152,26 @@ BOOL soundVal = FALSE;
   [ble write:data];
 }
 
-//- (void)connectionTimer:(NSTimer *)timer
-//{
-////  [btnConnect setEnabled:true];
-//  
-//  if (ble.peripherals.count > 0) {
-////    lblConnectBtn.text = @"Disconnect";
-//    [btnShowLight setEnabled:YES];
-//    [btnPlaySound setEnabled:YES];
-//    [ble connectPeripheral:[ble.peripherals objectAtIndex:0]];
-//  }
-//  else {
-////    lblConnectBtn.text = @"Connect";
-////    [btnShowLight setEnabled:NO];
-////    [btnPlaySound setEnabled:NO];
-////    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
-////                                                    message:@"Could not find your T/LT device nearby. Please try again when in range."
-////                                                   delegate:nil
-////                                          cancelButtonTitle:@"Dismiss"
-////                                          otherButtonTitles:nil];
-////    [alert show];
-//    [self goBackToMainView];
-//  }
-//}
+- (IBAction)disconnect:(id)sender {
+  if (ble.activePeripheral) {
+    if (ble.activePeripheral.state == CBPeripheralStateConnected) {
+      [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
+    }
+  }
+}
+
+- (IBAction)showLightSound:(id)sender {
+
+  UInt8 buf[3] = {kLightSound, 0x00 , 0x00};
+  if (lightVal == FALSE) {
+    buf[1] = TRUE;
+    lightVal = TRUE;
+  } else {
+    lightVal = FALSE;
+  }
+  NSData *data = [[NSData alloc] initWithBytes:buf length:3];
+  [ble write:data];
+}
 
 - (void)goBackToMainView
 {

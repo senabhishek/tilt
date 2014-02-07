@@ -17,7 +17,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" hasAttributedTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="P5m-0Q-XWo">
-                                <rect key="frame" x="125" y="206" width="71" height="68"/>
+                                <rect key="frame" x="128" y="206" width="64" height="64"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="connect_icon">
                                     <attributedString key="attributedTitle">
@@ -70,7 +70,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleAspectFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CPh-H3-tNK">
-                                <rect key="frame" x="268" y="252" width="32" height="32"/>
+                                <rect key="frame" x="268" y="269" width="32" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="earSound">
                                     <color key="titleShadowColor" red="0.57254904508590698" green="0.57254904508590698" blue="0.57254904508590698" alpha="1" colorSpace="deviceRGB"/>
@@ -80,7 +80,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleAspectFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hBC-6I-aHG">
-                                <rect key="frame" x="28" y="252" width="32" height="32"/>
+                                <rect key="frame" x="28" y="269" width="32" height="32"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="Light">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -97,21 +97,27 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yJ4-S5-Oib">
-                                <rect key="frame" x="137" y="236" width="64" height="64"/>
+                                <rect key="frame" x="137" y="253" width="64" height="64"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Button">
+                                <state key="normal" title="Find">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="showLightSound:" destination="ERW-GG-NS5" eventType="touchUpInside" id="GXQ-iq-ajg"/>
+                                </connections>
                             </button>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="uFv-gD-eS5">
-                                <rect key="frame" x="130" y="121" width="78" height="30"/>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="uFv-gD-eS5">
+                                <rect key="frame" x="130" y="88" width="64" height="64"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Disconnect">
+                                <state key="normal" title="Disconnect" image="Unpeer">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
+                                <connections>
+                                    <action selector="disconnect:" destination="ERW-GG-NS5" eventType="touchUpInside" id="Q94-h8-CvC"/>
+                                </connections>
                             </button>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Disconnect" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="j95-qr-1n5">
-                                <rect key="frame" x="126" y="159" width="87" height="21"/>
+                                <rect key="frame" x="119" y="160" width="87" height="21"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
@@ -124,9 +130,12 @@
                     <navigationItem key="navigationItem" id="fQg-af-2a9"/>
                     <connections>
                         <outlet property="btnConnect" destination="P5m-0Q-XWo" id="YBT-4z-jc1"/>
+                        <outlet property="btnDisconnect" destination="uFv-gD-eS5" id="QeG-eR-gEM"/>
                         <outlet property="btnPlaySound" destination="CPh-H3-tNK" id="dso-1p-U4O"/>
                         <outlet property="btnShowLight" destination="hBC-6I-aHG" id="icW-0w-6jS"/>
+                        <outlet property="btnSoundLight" destination="yJ4-S5-Oib" id="YoG-Pq-Hw0"/>
                         <outlet property="lblConnectBtn" destination="5e2-2f-rOk" id="arR-Tz-Bup"/>
+                        <outlet property="lblDisconnect" destination="j95-qr-1n5" id="8Cf-dd-Xqn"/>
                         <outlet property="lblRSSI" destination="7Kv-pA-Cp5" id="2dw-6c-947"/>
                     </connections>
                 </viewController>
@@ -155,6 +164,7 @@
     </scenes>
     <resources>
         <image name="Light" width="417" height="417"/>
+        <image name="Unpeer" width="349" height="305"/>
         <image name="connect_icon" width="1200" height="1200"/>
         <image name="earSound" width="1200" height="1200"/>
     </resources>
