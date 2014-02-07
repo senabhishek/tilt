@@ -25,7 +25,8 @@
 typedef enum ble_cmd_phone_to_tilt_e {
   BLE_CMD_PHONE_TO_TILT_LIGHT_ENABLE_DISABLE = 0x0,
   BLE_CMD_PHONE_TO_TILT_SOUND_ENABLE_DISABLE,
-  BLE_CMD_PHONE_TO_TILT_RESET
+  BLE_CMD_PHONE_TO_TILT_RESET,
+  BLE_CMD_PHONE_TO_TILT_LIGHT_SOUND_ENABLE_DISABLE
 } ble_cmd_phone_to_tilt_e_type;
 
 typedef enum ble_cmd_tilt_to_phone_e {
@@ -37,8 +38,8 @@ typedef enum ble_cmd_tilt_to_phone_e {
  *============================================================================*/
  
 // Bit-wise macros
-#define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
-#define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
+//#define SETBIT(x,y)   (x |= (y))  //Set bit y in byte x 
+//#define CLEARBIT(x,y) (x &= (~y)) //Clear bit Y in byte x 
 #define CHECKBIT(x,y) ((y >> x) & 0x1)   //True if bit y of byte x=1. 
 
 /*==============================================================================
@@ -92,6 +93,7 @@ int analogInputsToReport = 0; // bitwise array to store pin reporting
  
 #define PWM_PIN            6
 #define PWM_LEVEL_HIGH     127
+#define PWM_LEVEL_MED      90
 #define PWM_LEVEL_LOW      0
 #define NOTE_B0            31
 #define NOTE_FS7           2960
@@ -101,6 +103,8 @@ int analogInputsToReport = 0; // bitwise array to store pin reporting
 #define LIGHT_LEFT         11
 #define LIGHT_BACK         10
 #define SPEAKER_OUT        8
+#define TYPE_OF_SOUND_FIND_BIKE  0
+#define TYPE_OF_SOUND_ALARM      1
 
 //sound configuration
 int speakerOut = 8; // loud speaker
@@ -121,6 +125,8 @@ unsigned long previousMillis;       // for comparison with currentMillis
 int samplingInterval = 38;          // how often to run the main loop (in ms)
 boolean showLight = false;
 volatile boolean prevLightVal = false;
+volatile boolean prevFindLight = false;
+volatile unsigned int prevSoundVal = PWM_LEVEL_LOW;
 boolean playSound = false;
 
 /*==============================================================================
@@ -735,7 +741,7 @@ void setup()
   pinMode(LIGHT_LEFT, OUTPUT);
   pinMode(LIGHT_RIGHT, OUTPUT);
   pinMode(LIGHT_BACK, OUTPUT);  
-//  pinMode(SPEAKER_OUT, OUTPUT);  
+  resetPins();
   
   // Set LED blink timer for a value of 250 ms if enabled from phone
   noInterrupts();
@@ -846,28 +852,26 @@ boolean monitorAccelData()
 
 void resetPins()
 {
-  analogWrite(PWM_PIN, PWM_LEVEL_LOW);
-//  digitalWrite(DIGITAL_OUT_PIN, LOW);
+  activate_sound_only(PWM_LEVEL_LOW, TYPE_OF_SOUND_FIND_BIKE);  
+  activate_light_only(LOW);  
 }
 
 ISR(TIMER1_COMPA_vect) {
   // Generates pulse wave of frequency 4 Hz
-  if (alarm_state) {    
-    prevLightVal = !prevLightVal;
-    activate_light_only(prevLightVal);  
-  }
-}
-
-
-void handleShowLightCmd(byte value)
-{
-  if (value == TRUE) {
-    showLight = true;
-  } else {
-    showLight = false;
-    prevLightVal = LOW; 
-//    digitalWrite(DIGITAL_OUT_PIN, LOW);
-  } 
+//  if (alarm_state) {    
+//    prevLightVal = !prevLightVal;
+//    activate_light_only(prevLightVal);  
+//  }
+//  
+//  if (showLight) {
+//    prevLightVal = !prevLightVal;
+//    activate_light_only(prevLightVal);  
+//  }
+  
+  if (playSound) {
+    prevSoundVal = (prevSoundVal == PWM_LEVEL_LOW) ? PWM_LEVEL_MED : PWM_LEVEL_LOW;
+    activate_light_only(prevSoundVal);
+  }  
 }
 
 void activate_light_only(boolean state){
@@ -878,23 +882,31 @@ void activate_light_only(boolean state){
   delay(100);              // wait a lil while. 1000 is one second
 }
 
-void activate_sound_only(boolean state){
-//  digitalWrite(speakerOut,state);
+void activate_sound_only(int level, int type) {
+  switch (type) {
+    case TYPE_OF_SOUND_FIND_BIKE:
+      analogWrite(PWM_PIN, level);    
+      break;
+    case TYPE_OF_SOUND_ALARM:
+      digitalWrite(PWM_PIN, level);
+      break;
+    default:
+      break; 
+  }
 }
-
 
 void alarm_handler(boolean active) {  
   prevLightVal = active;
   
   if (alarm_state == false) {
     if (active == true) {    
-      activate_sound_only(active);
+      activate_sound_only(active, TYPE_OF_SOUND_ALARM);
       activate_light_only(active);
       alarm_state = true;   
       Serial.println("Alarm triggered!!");       
     } else {
       activate_light_only(active);
-      activate_sound_only(active);    
+      activate_sound_only(active, TYPE_OF_SOUND_ALARM);    
       Serial.println("Alarm disabled!!");             
     }
   } 
@@ -902,8 +914,31 @@ void alarm_handler(boolean active) {
 
 void handlePlaySoundCmd(byte value)
 {
-  (value == 0x01) ? analogWrite(PWM_PIN, PWM_LEVEL_HIGH) : digitalWrite(PWM_PIN, PWM_LEVEL_LOW);
-//  playSound = (value == 0x01) ? true : false;
+  if (value == 0x01) {
+    playSound = true;
+    activate_sound_only(PWM_LEVEL_MED, TYPE_OF_SOUND_FIND_BIKE);  
+  } else {
+    playSound = false;
+    activate_sound_only(PWM_LEVEL_LOW, TYPE_OF_SOUND_FIND_BIKE);
+  }   
+}
+
+void handleShowLightCmd(byte value)
+{
+  if (value == 0x01) {
+    showLight = true;
+    activate_light_only(HIGH);
+  } else {
+    showLight = false;
+    prevFindLight = LOW;
+    activate_light_only(prevLightVal);
+  } 
+}
+
+void handleLightAndSound(byte value)
+{
+  handlePlaySoundCmd(value);
+  handleShowLightCmd(value);
 }
 
 void sendWelcomeMsg()
@@ -953,7 +988,8 @@ void loop()
         //sendWelcomeMsg();
         break;
       
-      case 0x04:
+      case BLE_CMD_PHONE_TO_TILT_LIGHT_SOUND_ENABLE_DISABLE:
+        handleLightAndSound(data1);
         break;
         
       default:
