@@ -19,7 +19,7 @@
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" lineBreakMode="middleTruncation" hasAttributedTitle="YES" translatesAutoresizingMaskIntoConstraints="NO" id="P5m-0Q-XWo">
                                 <rect key="frame" x="128" y="206" width="64" height="64"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" image="connect_icon">
+                                <state key="normal" image="connect">
                                     <attributedString key="attributedTitle">
                                         <fragment content="Connect">
                                             <attributes>
@@ -35,10 +35,10 @@
                                 </connections>
                             </button>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Connect" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="5e2-2f-rOk">
-                                <rect key="frame" x="99" y="272" width="123" height="21"/>
+                                <rect key="frame" x="85" y="273" width="151" height="29"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="boldSystem" pointSize="17"/>
-                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
@@ -49,7 +49,7 @@
                         <outlet property="btnConnect" destination="P5m-0Q-XWo" id="yBi-wZ-ICx"/>
                         <outlet property="lblConnectBtn" destination="5e2-2f-rOk" id="pat-eD-OXF"/>
                         <segue destination="ERW-GG-NS5" kind="push" identifier="segueToTiltConnectedVC" id="oUi-Eq-u8W"/>
-                        <segue destination="r0T-mU-vHm" kind="unwind" unwindAction="goBackToMainView:" id="fLm-yo-jN0"/>
+                        <segue destination="r0T-mU-vHm" kind="unwind" identifier="unwindToMainViewSegue" unwindAction="goBackToMainView:" id="fLm-yo-jN0"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="puz-HR-gZE" userLabel="First Responder" sceneMemberID="firstResponder"/>
@@ -70,7 +70,7 @@
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                         <subviews>
                             <button opaque="NO" contentMode="scaleAspectFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="CPh-H3-tNK">
-                                <rect key="frame" x="268" y="269" width="32" height="32"/>
+                                <rect key="frame" x="147" y="472" width="45" height="45"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="earSound">
                                     <color key="titleShadowColor" red="0.57254904508590698" green="0.57254904508590698" blue="0.57254904508590698" alpha="1" colorSpace="deviceRGB"/>
@@ -80,7 +80,7 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleAspectFill" fixedFrame="YES" highlighted="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" showsTouchWhenHighlighted="YES" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="hBC-6I-aHG">
-                                <rect key="frame" x="28" y="269" width="32" height="32"/>
+                                <rect key="frame" x="140" y="230" width="45" height="45"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" image="Light">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -96,10 +96,10 @@
                                 <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="roundedRect" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yJ4-S5-Oib">
-                                <rect key="frame" x="137" y="253" width="64" height="64"/>
+                            <button opaque="NO" contentMode="scaleAspectFit" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yJ4-S5-Oib">
+                                <rect key="frame" x="130" y="342" width="72" height="72"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Find">
+                                <state key="normal" title="Find" image="combo">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
@@ -107,20 +107,21 @@
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="uFv-gD-eS5">
-                                <rect key="frame" x="130" y="88" width="64" height="64"/>
+                                <rect key="frame" x="130" y="70" width="64" height="64"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Disconnect" image="Unpeer">
+                                <state key="normal" title="Disconnect" image="disconnect">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
                                 </state>
                                 <connections>
                                     <action selector="disconnect:" destination="ERW-GG-NS5" eventType="touchUpInside" id="Q94-h8-CvC"/>
+                                    <segue destination="3C4-WD-iHP" kind="unwind" unwindAction="goBackToMainView:" id="Twa-c3-0fP"/>
                                 </connections>
                             </button>
                             <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="Disconnect" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="j95-qr-1n5">
-                                <rect key="frame" x="119" y="160" width="87" height="21"/>
+                                <rect key="frame" x="119" y="134" width="100" height="24"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <fontDescription key="fontDescription" type="system" pointSize="17"/>
-                                <color key="textColor" cocoaTouchSystemColor="darkTextColor"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="20"/>
+                                <color key="textColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
                                 <nil key="highlightedColor"/>
                             </label>
                         </subviews>
@@ -140,6 +141,7 @@
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="mbe-Rl-aN5" userLabel="First Responder" sceneMemberID="firstResponder"/>
+                <exit id="3C4-WD-iHP" userLabel="Exit" sceneMemberID="exit"/>
             </objects>
             <point key="canvasLocation" x="553" y="-36"/>
         </scene>
@@ -164,9 +166,10 @@
     </scenes>
     <resources>
         <image name="Light" width="417" height="417"/>
-        <image name="Unpeer" width="349" height="305"/>
-        <image name="connect_icon" width="1200" height="1200"/>
-        <image name="earSound" width="1200" height="1200"/>
+        <image name="combo" width="362" height="363"/>
+        <image name="connect" width="375" height="305"/>
+        <image name="disconnect" width="349" height="305"/>
+        <image name="earSound" width="377" height="349"/>
     </resources>
     <simulatedMetricsContainer key="defaultSimulatedMetrics">
         <simulatedStatusBarMetrics key="statusBar"/>

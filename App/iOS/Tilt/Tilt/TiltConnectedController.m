@@ -70,8 +70,6 @@ BOOL soundVal = FALSE;
 - (void)bleDidDisconnect
 {
   NSLog(@"->Disconnected");
-  // Go back to main screen
-  [self goBackToMainView];
 }
 
 // When RSSI is changed, this will be called
@@ -173,36 +171,36 @@ BOOL soundVal = FALSE;
   [ble write:data];
 }
 
-- (void)goBackToMainView
-{
-  SEL theUnwindSelector = @selector(goBackToMainView:);
-  NSString *unwindSegueIdentifier = @"unwindToMainViewSegue";
-  
-  UINavigationController *nc = [self navigationController];
-  // Find the view controller that has this unwindAction selector (may not be one in the nav stack)
-  UIViewController *viewControllerToCallUnwindSelectorOn = [nc viewControllerForUnwindSegueAction: theUnwindSelector
-                                                                               fromViewController: self
-                                                                                       withSender: nil];
-
-  // None found, then do nothing.
-  if (viewControllerToCallUnwindSelectorOn == nil) {
-    NSLog(@"No controller found to unwind too");
-    return;
-  }
-  
-  // Can the controller that we found perform the unwind segue.  (This is decided by that controllers implementation of canPerformSeque: method
-  BOOL cps = [viewControllerToCallUnwindSelectorOn canPerformUnwindSegueAction:theUnwindSelector
-                                                            fromViewController: self
-                                                                    withSender: nil];
-  // If we have permission to perform the seque on the controller where the unwindAction is implmented
-  // then get the segue object and perform it.
-  if (cps) {
-    UIStoryboardSegue *unwindSegue = [nc segueForUnwindingToViewController: viewControllerToCallUnwindSelectorOn
-                                                        fromViewController: self
-                                                                identifier: unwindSegueIdentifier];
-    
-    [viewControllerToCallUnwindSelectorOn prepareForSegue: unwindSegue sender: self];
-    [unwindSegue perform];
-  }
-}
+//- (void)goBackToMainView: (id)sender
+//{
+//  SEL theUnwindSelector = @selector(goBackToMainView:);
+//  NSString *unwindSegueIdentifier = @"unwindToMainViewSegue";
+//  
+//  UINavigationController *nc = [self navigationController];
+//  // Find the view controller that has this unwindAction selector (may not be one in the nav stack)
+//  UIViewController *viewControllerToCallUnwindSelectorOn = [nc viewControllerForUnwindSegueAction: theUnwindSelector
+//                                                                               fromViewController: self
+//                                                                                       withSender: sender];
+//
+//  // None found, then do nothing.
+//  if (viewControllerToCallUnwindSelectorOn == nil) {
+//    NSLog(@"No controller found to unwind too");
+//    return;
+//  }
+//  
+//  // Can the controller that we found perform the unwind segue.  (This is decided by that controllers implementation of canPerformSeque: method
+//  BOOL cps = [viewControllerToCallUnwindSelectorOn canPerformUnwindSegueAction:theUnwindSelector
+//                                                            fromViewController: self
+//                                                                    withSender: sender];
+//  // If we have permission to perform the seque on the controller where the unwindAction is implmented
+//  // then get the segue object and perform it.
+//  if (cps) {
+//    UIStoryboardSegue *unwindSegue = [nc segueForUnwindingToViewController: viewControllerToCallUnwindSelectorOn
+//                                                        fromViewController: self
+//                                                                identifier: unwindSegueIdentifier];
+//    
+//    [viewControllerToCallUnwindSelectorOn prepareForSegue: unwindSegue sender: self];
+//    [unwindSegue perform];
+//  }
+//}
 @end

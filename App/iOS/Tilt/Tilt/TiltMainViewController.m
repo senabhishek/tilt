@@ -136,9 +136,10 @@ NSInteger const connectionTimeout = 3;
 //  }
 }
 
-- (IBAction)goBackToMainView: (UIStoryboardSegue*) segue
+- (IBAction)goBackToMainView: (UIStoryboardSegue*)segue
 {
   NSLog(@"Called goBackToMainView: unwind action");
+  lblConnectBtn.text = @"Connect";
 }
 
 @end
