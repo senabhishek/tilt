@@ -97,7 +97,7 @@
                                 <nil key="highlightedColor"/>
                             </label>
                             <button opaque="NO" contentMode="scaleAspectFit" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="yJ4-S5-Oib">
-                                <rect key="frame" x="130" y="342" width="72" height="72"/>
+                                <rect key="frame" x="119" y="342" width="90" height="90"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
                                 <state key="normal" title="Find" image="combo">
                                     <color key="titleShadowColor" white="0.5" alpha="1" colorSpace="calibratedWhite"/>
@@ -166,7 +166,7 @@
     </scenes>
     <resources>
         <image name="Light" width="417" height="417"/>
-        <image name="combo" width="362" height="363"/>
+        <image name="combo" width="288" height="287"/>
         <image name="connect" width="375" height="305"/>
         <image name="disconnect" width="349" height="305"/>
         <image name="earSound" width="377" height="349"/>
