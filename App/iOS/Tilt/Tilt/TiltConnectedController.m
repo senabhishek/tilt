@@ -53,6 +53,7 @@ BOOL lightSoundVal = FALSE;
   UIImageView *bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"background"]];
   bgImageView.frame = self.view.bounds;
   bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+  bgImageView.alpha = 0.9;  
   [self.view addSubview:bgImageView];
   [self.view sendSubviewToBack:bgImageView];
 }

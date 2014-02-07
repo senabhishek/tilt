@@ -43,6 +43,7 @@ NSInteger const connectionTimeout = 3;
   UIImageView *bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"background"]];
   bgImageView.frame = self.view.bounds;
   bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+  bgImageView.alpha = 0.9;
   [self.view addSubview:bgImageView];
   [self.view sendSubviewToBack:bgImageView];
 }
@@ -93,7 +94,7 @@ NSInteger const connectionTimeout = 3;
   
   // Try to find peripherals for the next 2 seconds
   if ([ble findBLEPeripherals:connectionTimeout] != -1) {
-    lblConnectBtn.text = @"Connecting ...";
+    lblConnectBtn.text = @"Connecting...";
     [btnConnect setEnabled:false];
     
     // Start connection timer for connectionTimeout value
