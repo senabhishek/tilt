@@ -7,6 +7,7 @@
 //
 
 #import "TiltConnectedController.h"
+#import "TiltMainViewController.h"
 #import "BLE.h"
 #import "BLEDefines.h"
 #import <CoreLocation/CoreLocation.h>
@@ -45,6 +46,12 @@ BOOL soundVal = FALSE;
 //  self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
 //  [self.locationManager startUpdatingLocation];
   [self.navigationItem setHidesBackButton:YES];
+  [[self navigationController] setNavigationBarHidden:YES animated:YES];
+  UIImageView *bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"background"]];
+  bgImageView.frame = self.view.bounds;
+  bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+  [self.view addSubview:bgImageView];
+  [self.view sendSubviewToBack:bgImageView];
 }
 
 - (void)didReceiveMemoryWarning
@@ -220,6 +227,7 @@ BOOL soundVal = FALSE;
   UIViewController *viewControllerToCallUnwindSelectorOn = [nc viewControllerForUnwindSegueAction: theUnwindSelector
                                                                                fromViewController: self
                                                                                        withSender: nil];
+
   // None found, then do nothing.
   if (viewControllerToCallUnwindSelectorOn == nil) {
     NSLog(@"No controller found to unwind too");
@@ -236,6 +244,7 @@ BOOL soundVal = FALSE;
     UIStoryboardSegue *unwindSegue = [nc segueForUnwindingToViewController: viewControllerToCallUnwindSelectorOn
                                                         fromViewController: self
                                                                 identifier: unwindSegueIdentifier];
+    
     [viewControllerToCallUnwindSelectorOn prepareForSegue: unwindSegue sender: self];
     [unwindSegue perform];
   }

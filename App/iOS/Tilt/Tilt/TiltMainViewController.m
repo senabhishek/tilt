@@ -39,6 +39,12 @@ NSInteger const connectionTimeout = 3;
   [super viewDidLoad];
   ble = [BLE getInstance];
   ble.delegate = self;
+  [[self navigationController] setNavigationBarHidden:YES animated:YES];
+  UIImageView *bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"background"]];
+  bgImageView.frame = self.view.bounds;
+  bgImageView.contentMode = UIViewContentModeScaleAspectFill;
+  [self.view addSubview:bgImageView];
+  [self.view sendSubviewToBack:bgImageView];
 }
 
 - (void)didReceiveMemoryWarning

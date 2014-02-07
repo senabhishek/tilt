@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		380D6E8518A19DCD00908F1F /* TiltMainViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 380D6E8418A19DCD00908F1F /* TiltMainViewController.m */; };
-		380D6E8718A1DB7A00908F1F /* bike_2-wallpaper-1680x1050.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 380D6E8618A1DB7A00908F1F /* bike_2-wallpaper-1680x1050.jpg */; };
 		381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381D50B8186DD1ED0035BFED /* MapKit.framework */; };
 		381D50BE186DD4AE0035BFED /* BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = 381D50BC186DD4AE0035BFED /* BLE.m */; };
 		389C81FA18733E77009B7025 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 389C81F918733E77009B7025 /* Images.xcassets */; };
@@ -43,7 +42,6 @@
 /* Begin PBXFileReference section */
 		380D6E8318A19DCD00908F1F /* TiltMainViewController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TiltMainViewController.h; sourceTree = "<group>"; };
 		380D6E8418A19DCD00908F1F /* TiltMainViewController.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = TiltMainViewController.m; sourceTree = "<group>"; };
-		380D6E8618A1DB7A00908F1F /* bike_2-wallpaper-1680x1050.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; name = "bike_2-wallpaper-1680x1050.jpg"; path = "../../../../../../../Dropbox/TILT/20 Phone Application/AppTilt Folder/Links/bike_2-wallpaper-1680x1050.jpg"; sourceTree = "<group>"; };
 		381D50B8186DD1ED0035BFED /* MapKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MapKit.framework; path = System/Library/Frameworks/MapKit.framework; sourceTree = SDKROOT; };
 		381D50BB186DD4AE0035BFED /* BLE.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BLE.h; sourceTree = "<group>"; };
 		381D50BC186DD4AE0035BFED /* BLE.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = BLE.m; sourceTree = "<group>"; };
@@ -102,7 +100,6 @@
 		380D6E8818A1DC2200908F1F /* Images */ = {
 			isa = PBXGroup;
 			children = (
-				380D6E8618A1DB7A00908F1F /* bike_2-wallpaper-1680x1050.jpg */,
 			);
 			name = Images;
 			sourceTree = "<group>";
@@ -286,7 +283,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				389C81FA18733E77009B7025 /* Images.xcassets in Resources */,
-				380D6E8718A1DB7A00908F1F /* bike_2-wallpaper-1680x1050.jpg in Resources */,
 				389C81FC187341D7009B7025 /* StringResource.strings in Resources */,
 				38CF3651186D992300DA65AE /* InfoPlist.strings in Resources */,
 				38CF3676186D9A4B00DA65AE /* Tilt.storyboard in Resources */,
