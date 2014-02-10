@@ -8,6 +8,7 @@
 #include "BLEFirmata.h"
 #include <ble_shield.h>
 #include <services.h>
+#include "Thread.h"
 
 /*==============================================================================
  * FEATURE DEFINES
@@ -22,6 +23,12 @@
 /*==============================================================================
  * ENUMERATIONS
  *============================================================================*/
+typedef enum ble_cmd_tilt_to_phone_e {
+  BLE_CMD_TILT_TO_PHONE_GENERAL_MSG = 0x0,
+  BLE_CMD_TILE_TO_PHONE_BIKE_THEFT_NOTF_MSG = 0x1,
+  BLE_CMD_TILE_TO_PHONE_MAX
+} ble_cmd_tilt_to_phone_e_type;
+
 typedef enum ble_cmd_phone_to_tilt_e {
   BLE_CMD_PHONE_TO_TILT_LIGHT_ENABLE_DISABLE = 0x0,
   BLE_CMD_PHONE_TO_TILT_SOUND_ENABLE_DISABLE,
@@ -29,9 +36,6 @@ typedef enum ble_cmd_phone_to_tilt_e {
   BLE_CMD_PHONE_TO_TILT_LIGHT_SOUND_ENABLE_DISABLE
 } ble_cmd_phone_to_tilt_e_type;
 
-typedef enum ble_cmd_tilt_to_phone_e {
-  BLE_CMD_TILT_TO_PHONE_GENERAL_MSG = 0x0
-} ble_cmd_tilt_to_phone_e_type;
 
 /*==============================================================================
  * MACROS
@@ -47,6 +51,7 @@ typedef enum ble_cmd_tilt_to_phone_e {
  *============================================================================*/
 
 char *welcomeString = "Welcome to T/LT!";
+char *bikeTheftNotfString = "Your bike is being moved!";
 #define  TRUE  0x01
 #define  FALSE  0x00
 
@@ -98,16 +103,15 @@ int analogInputsToReport = 0; // bitwise array to store pin reporting
 #define NOTE_B0            31
 #define NOTE_FS7           2960
 #define NOTE_DS5           622
-#define LIGHT_FRONT        13
-#define LIGHT_RIGHT        12
-#define LIGHT_LEFT         11
-#define LIGHT_BACK         10
-#define SPEAKER_OUT        8
+#define LIGHT_FRONT        0
+#define LIGHT_RIGHT        1
+#define LIGHT_LEFT         2
+#define LIGHT_BACK         3
+#define SPEAKER_OUT        6
 #define TYPE_OF_SOUND_FIND_BIKE  0
 #define TYPE_OF_SOUND_ALARM      1
 
 //sound configuration
-int speakerOut = 8; // loud speaker
 const unsigned long maxAlarmTimeout = 5000;  // 5 seconds
 unsigned long alarmStartTime = 0;
 volatile boolean alarm_state = false;
@@ -128,6 +132,12 @@ volatile boolean prevLightVal = false;
 volatile boolean prevFindLight = false;
 volatile unsigned int prevSoundVal = PWM_LEVEL_LOW;
 boolean playSound = false;
+static bool ledStatus = false;
+
+/*==============================================================================
+ * Threads()
+ *============================================================================*/
+Thread ledThread;
 
 /*==============================================================================
  * ACCELEROMETER GLOBAL VARIABLES + CONSTANTS 
@@ -673,6 +683,11 @@ void disableI2CPins() {
     // Wire.end();
 }
 
+// Callback for myThread
+void ledCallback() {
+  ledStatus = !ledStatus;
+}
+
 /*==============================================================================
  * ISRs()
  *============================================================================*/
@@ -740,7 +755,8 @@ void setup()
   pinMode(LIGHT_FRONT, OUTPUT);
   pinMode(LIGHT_LEFT, OUTPUT);
   pinMode(LIGHT_RIGHT, OUTPUT);
-  pinMode(LIGHT_BACK, OUTPUT);  
+  pinMode(LIGHT_BACK, OUTPUT);
+  pinMode(SPEAKER_OUT, OUTPUT);  
   resetPins();
   
   // Set LED blink timer for a value of 250 ms if enabled from phone
@@ -759,12 +775,15 @@ void setup()
   TIMSK1 |= (1 << OCIE1A);  
   interrupts();
   Wire.begin(); //Join the bus as a master  
-//#ifndef TEST_BT_WITHOUT_ACCELEROMETER  
+
   initMMA8452(); //Test and intialize the MMA8452  
   //these interrupts causes the board to keep resetting
-//#endif /* TEST_BT_WITHOUT_ACCELEROMETER */
   
-  
+  //******************* THREAD LED ************************
+  // Create a thread:
+  ledThread = Thread();
+  ledThread.onRun(ledCallback);
+  ledThread.setInterval(1000);  
 }
 
 void readAndSaveAccelValues()
@@ -780,7 +799,6 @@ void initAccelData()
 { 
   // Initialize current accel values
   readAndSaveAccelValues();
-
   initAccelG[0]=accelG[0];
   initAccelG[1]=accelG[1];
   initAccelG[2]=accelG[2];
@@ -804,7 +822,7 @@ void setAccelConfigParm(boolean flag)
    TRUE if we think someone is moving the bike and FALSE otherwise. */
 boolean monitorAccelData()
 {
-  if(!alarmTriggered && millis()>maxAlarmTimeout)
+  if (!alarmTriggered && (millis() > maxAlarmTimeout))
   {
     if (zTimerStarted) {
       if ((millis() - zTimerStartTime) > zTimerVal) {
@@ -812,6 +830,7 @@ boolean monitorAccelData()
 //        Serial.println(zTranCount);
         if (zTranCount >= maxzTranCount) {
           triggerAlarm = true;   
+          sendMsgtoPhone(BLE_CMD_TILE_TO_PHONE_BIKE_THEFT_NOTF_MSG);          
 //          Serial.println("Z-axis alarm");        
         }
         zTimerStarted = false;
@@ -830,6 +849,7 @@ boolean monitorAccelData()
 //        Serial.println(xTranCount);
         if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
           triggerAlarm = true;
+          
 //          Serial.println("X-axis alarm");
         }   
         xTimerStarted = false;  
@@ -927,11 +947,11 @@ void handleShowLightCmd(byte value)
 {
   if (value == 0x01) {
     showLight = true;
-    activate_light_only(HIGH);
+    //activate_light_only(HIGH);
   } else {
     showLight = false;
-    prevFindLight = LOW;
-    activate_light_only(prevLightVal);
+    //prevFindLight = LOW;
+    //activate_light_only(prevLightVal);
   } 
 }
 
@@ -941,12 +961,11 @@ void handleLightAndSound(byte value)
   handleShowLightCmd(value);
 }
 
-void sendWelcomeMsg()
-{
-  ble_write(BLE_CMD_TILT_TO_PHONE_GENERAL_MSG);
-  for (int i = 0; i < strlen(welcomeString); i++) {
-    ble_write(welcomeString[i]);  
-  }       
+void sendMsgtoPhone(int cmd_id)
+{ 
+  if (cmd_id < BLE_CMD_TILE_TO_PHONE_MAX) {
+    ble_write(cmd_id);
+  }
 }
 
 /*==============================================================================
@@ -954,14 +973,9 @@ void sendWelcomeMsg()
  *============================================================================*/
 void loop() 
 { 
-  unsigned long mil=0;
-  static int initialized=false;
+  unsigned long mil = 0;
 
 //********************* BLUETOOTH *******************
-  if (!ble_connected()) {
-    systemResetCallback();
-  }
-
   // Byte 0: Command
   // Byte 1: Command Value
 
@@ -985,7 +999,6 @@ void loop()
       case BLE_CMD_PHONE_TO_TILT_RESET:
         // Reset PINs. Sent from device upon connection. Also send a welcome message.
         resetPins();      
-        //sendWelcomeMsg();
         break;
       
       case BLE_CMD_PHONE_TO_TILT_LIGHT_SOUND_ENABLE_DISABLE:
@@ -1006,43 +1019,45 @@ void loop()
   if (triggerAlarm) {
     alarmStartTime = millis(); 
     alarm_handler(true);
-    alarm_state=true;
-
+    alarm_state = true;
     triggerAlarm = false;
-    alarmTriggered=true;
-    
-//    Serial.println("Mil @ alarm triggered: ");    
-//    Serial.println(alarmStartTime);
+    alarmTriggered = true;
   }
   
   if (alarm_state == true) {
     if ((millis() - alarmStartTime) >= maxAlarmTimeout) {
       alarm_state = false;    
       alarm_handler(false);
-      alarmTriggered=false;
-      mil=millis();
-      
-//      Serial.print("Mil @ alarm stopped: ");    
-//      Serial.println(mil);
-//      Serial.print("alarmStartTime: ");          
-//      Serial.println(alarmStartTime);
+      alarmTriggered = false;
+      mil = millis();   
     }
   }
 
-#ifndef TEST_BT_WITHOUT_ACCELEROMETER1
-//  if (!ble_connected()) {
-//    systemResetCallback();
-//    if (!accelConfgd) {
-//      initAccelData(); 
-//    } else if (deviceSecurityEnabled) {
-//      monitorAccelData(); 
-//    }
-//  } else {
-//    if (accelConfgd) {
-//      setAccelConfigParm(false);  
-//    } 
-//  }
-
+  // checks if thread should run (ie., if alarm triggered)
+  if (ledThread.shouldRun()) {
+    ledThread.run();
+    delay(100);
+    
+    // Show the lights either if 1. Alarm is enabled 2. User is trying to find their bike
+    if (alarmTriggered || showLight) {
+      activate_light_only(ledStatus);
+//      digitalWrite(ledPin, ledStatus);
+//      Serial.print("LED status: ");
+//      Serial.println(ledStatus);
+//      Serial.print("LED pin: ");          
+//      Serial.println(ledPin);       
+    } else if (ledStatus)  {
+      // ensure that LED is kept low when alarm is not triggered or when user is NOT trying to find their bik
+      activate_light_only(LOW);
+//      digitalWrite(ledPin, 0);
+//      Serial.print("LED status: ");
+//      Serial.println(ledStatus);
+//      Serial.print("LED pin: ");          
+//      Serial.println(ledPin);            
+    }
+  }
+  
+  //***************** Accelerometer **********************************//
   // Read INT SOURCE register
   int_status = readRegister(INT_SOURCE);
   
@@ -1055,31 +1070,15 @@ void loop()
     ytran = CHECKBIT(ytran_bit, regValTrans);
     ytran_pol = CHECKBIT(ytran_pol_bit, regValTrans);
     xtran = CHECKBIT(xtran_bit, regValTrans);
-    xtran_pol = CHECKBIT(xtran_pol_bit, regValTrans); 
-    
-//    Serial.print("xtran ");
-//    Serial.print(xtran);
-//    Serial.print(" xtran_pol ");
-//    Serial.print(xtran_pol);
-//    Serial.print(" ytran ");
-//    Serial.print(ytran);
-//    Serial.print(" ytran_pol ");
-//    Serial.print(ytran_pol);
-//    Serial.print(" ztran ");
-//    Serial.print(ztran);
-//    Serial.print(" ztran_pol ");
-//    Serial.println(ztran_pol);    
-    
+    xtran_pol = CHECKBIT(xtran_pol_bit, regValTrans);  
 
     if (ztran) {
       if (!zTimerStarted) {
         zTimerStarted = true;
         zTranCount = 0;
-        zTimerStartTime = millis();
-//        Serial.println("Z-timer started");        
+        zTimerStartTime = millis();      
       } else {
         zTranCount++;
-//        Serial.println("Z received");
       }  
     }
     
@@ -1090,7 +1089,6 @@ void loop()
         xTranZeroCount = 0;
         xTranOneCount = 1; 
         xTimerStartTime = millis();  
-//        Serial.println("X-timer started by x-one");
       } else {
         xTranOneCount++;
         xTranCount++;
@@ -1101,21 +1099,15 @@ void loop()
         xTranCount = 1;  
         xTranZeroCount = 1;
         xTranOneCount = 0;   
-        xTimerStartTime = millis();          
-//        Serial.println("X-timer started by x-zero");   
+        xTimerStartTime = millis();            
       } else {
         xTranZeroCount++;
         xTranCount++;
       }
     }    
   }
-  
-  if (int_status&INT_EN_ASLP) {
-      int1_bh();
-  }
-#endif
 
-// NOT adding any additional delays
+//***************** Accelerometer : END **********************************//
 }
 
 /*==============================================================================
