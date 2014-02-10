@@ -31,6 +31,8 @@
 BOOL lightVal = FALSE;
 BOOL soundVal = FALSE;
 BOOL lightSoundVal = FALSE;
+NSString *welcomeMsg = @"Welcome to T/LT!";
+NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -109,11 +111,11 @@ BOOL lightSoundVal = FALSE;
   
   rcvdData++;
   switch (cmdId) {
-    case kGeneralMsg:
+    case kBikeTheftNotfMsg:
       {
         NSString *rcvdMsg = [[NSString alloc] initWithCString:rcvdData encoding:NSASCIIStringEncoding];
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
-                                                        message:rcvdMsg
+                                                        message:bikeTheftNotfMsg
                                                        delegate:nil
                                               cancelButtonTitle:@"OK"
                                               otherButtonTitles:nil];
@@ -131,8 +133,10 @@ BOOL lightSoundVal = FALSE;
   if (soundVal == FALSE) {
     buf[1] = TRUE;
     soundVal = TRUE;
+    [btnPlaySound setImage:[UIImage imageNamed:@"EarSoundOuterglow"] forState:(UIControlStateNormal)];
   } else {
     soundVal = FALSE;
+    [btnPlaySound setImage:[UIImage imageNamed:@"earSound"] forState:(UIControlStateNormal)];
   }
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];

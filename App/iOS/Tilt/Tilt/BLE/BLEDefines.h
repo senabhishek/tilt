@@ -12,5 +12,11 @@ typedef NS_ENUM(NSUInteger, BleCmdPhoneToTilt) {
 } NS_AVAILABLE(NA, 7_0);
 
 typedef NS_ENUM(NSUInteger, BleCmdTiltToPhone) {
-  kGeneralMsg = 0x0
+  kGeneralMsg = 0x0,
+  kBikeTheftNotfMsg
 } NS_AVAILABLE(NA, 7_0);
+
+// Follow same order as BleCmdTiltToPhone - DON'T REORDER
+#define MAX_RX_BUF_PKT_SZ  20
+
+

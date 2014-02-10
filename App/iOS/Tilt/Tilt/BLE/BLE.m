@@ -327,7 +327,7 @@ static BOOL isConnected = false;
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error
 {
-  unsigned char data[20];
+  unsigned char data[MAX_RX_BUF_PKT_SZ];
   static unsigned char buf[512];
   static int len = 0;
   NSInteger data_len;
@@ -337,15 +337,15 @@ static BOOL isConnected = false;
       data_len = characteristic.value.length;
       [characteristic.value getBytes:data length:data_len];
       
-      if (data_len == 20) {
-        memcpy(&buf[len], data, 20);
+      if (data_len == MAX_RX_BUF_PKT_SZ) {
+        memcpy(&buf[len], data, MAX_RX_BUF_PKT_SZ);
         len += data_len;
         
         if (len >= 64) {
           [delegate bleDidReceiveData:buf length:len];
           len = 0;
         }
-      } else if (data_len < 20) {
+      } else if (data_len < MAX_RX_BUF_PKT_SZ) {
         memcpy(&buf[len], data, data_len);
         len += data_len;
         
