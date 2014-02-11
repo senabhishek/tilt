@@ -103,13 +103,14 @@ int analogInputsToReport = 0; // bitwise array to store pin reporting
 #define NOTE_B0            31
 #define NOTE_FS7           2960
 #define NOTE_DS5           622
-#define LIGHT_FRONT        0
-#define LIGHT_RIGHT        1
-#define LIGHT_LEFT         2
-#define LIGHT_BACK         3
+#define LIGHT_FRONT        2
+#define LIGHT_RIGHT        3
+#define LIGHT_LEFT         4
+#define LIGHT_BACK         5
 #define SPEAKER_OUT        6
 #define TYPE_OF_SOUND_FIND_BIKE  0
 #define TYPE_OF_SOUND_ALARM      1
+#define THREAD_INTERVAL    250
 
 //sound configuration
 const unsigned long maxAlarmTimeout = 5000;  // 5 seconds
@@ -751,7 +752,6 @@ void setup()
 
    // Init. BLE and start BLE library.
   ble_begin();
-
   pinMode(LIGHT_FRONT, OUTPUT);
   pinMode(LIGHT_LEFT, OUTPUT);
   pinMode(LIGHT_RIGHT, OUTPUT);
@@ -778,12 +778,11 @@ void setup()
 
   initMMA8452(); //Test and intialize the MMA8452  
   //these interrupts causes the board to keep resetting
-  
   //******************* THREAD LED ************************
   // Create a thread:
   ledThread = Thread();
   ledThread.onRun(ledCallback);
-  ledThread.setInterval(1000);  
+  ledThread.setInterval(THREAD_INTERVAL);  
 }
 
 void readAndSaveAccelValues()
@@ -849,7 +848,7 @@ boolean monitorAccelData()
 //        Serial.println(xTranCount);
         if ((xPolRatio > maxxThresh) || (xPolRatio < minxThresh)) {
           triggerAlarm = true;
-          
+          sendMsgtoPhone(BLE_CMD_TILE_TO_PHONE_BIKE_THEFT_NOTF_MSG);    
 //          Serial.println("X-axis alarm");
         }   
         xTimerStarted = false;  
@@ -876,22 +875,11 @@ void resetPins()
   activate_light_only(LOW);  
 }
 
-ISR(TIMER1_COMPA_vect) {
-  // Generates pulse wave of frequency 4 Hz
-//  if (alarm_state) {    
-//    prevLightVal = !prevLightVal;
-//    activate_light_only(prevLightVal);  
-//  }
-//  
-//  if (showLight) {
-//    prevLightVal = !prevLightVal;
-//    activate_light_only(prevLightVal);  
-//  }
-  
+ISR(TIMER1_COMPA_vect) { 
   if (playSound) {
     prevSoundVal = (prevSoundVal == PWM_LEVEL_LOW) ? PWM_LEVEL_MED : PWM_LEVEL_LOW;
-    activate_light_only(prevSoundVal);
-  }  
+    activate_sound_only(prevSoundVal, TYPE_OF_SOUND_FIND_BIKE);
+  }
 }
 
 void activate_light_only(boolean state){
@@ -939,6 +927,7 @@ void handlePlaySoundCmd(byte value)
     activate_sound_only(PWM_LEVEL_MED, TYPE_OF_SOUND_FIND_BIKE);  
   } else {
     playSound = false;
+    prevSoundVal = PWM_LEVEL_LOW;
     activate_sound_only(PWM_LEVEL_LOW, TYPE_OF_SOUND_FIND_BIKE);
   }   
 }
@@ -947,11 +936,8 @@ void handleShowLightCmd(byte value)
 {
   if (value == 0x01) {
     showLight = true;
-    //activate_light_only(HIGH);
   } else {
     showLight = false;
-    //prevFindLight = LOW;
-    //activate_light_only(prevLightVal);
   } 
 }
 
@@ -974,7 +960,6 @@ void sendMsgtoPhone(int cmd_id)
 void loop() 
 { 
   unsigned long mil = 0;
-
 //********************* BLUETOOTH *******************
   // Byte 0: Command
   // Byte 1: Command Value
