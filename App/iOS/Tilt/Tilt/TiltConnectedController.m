@@ -161,6 +161,7 @@ NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
       [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
     }
   }
+  ble.delegate = nil;
 }
 
 - (IBAction)showLightSound:(id)sender {
