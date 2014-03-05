@@ -27,6 +27,7 @@
 @synthesize ble;
 @synthesize btnPlaySound;
 @synthesize btnShowLight;
+@synthesize btnSoundLight;
 @synthesize lblRSSI;
 BOOL lightVal = FALSE;
 BOOL soundVal = FALSE;
@@ -46,7 +47,7 @@ NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
 {
   [super viewDidLoad];
   ble = [BLE getInstance];
-  ble.delegate = self;
+  ble.ble_delegate = self;
 //  self.locationManager = [[CLLocationManager alloc] init];
 //  self.locationManager.desiredAccuracy = kCLLocationAccuracyBest;
 //  [self.locationManager startUpdatingLocation];
@@ -73,6 +74,7 @@ NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
 - (void)bleDidDisconnect
 {
   NSLog(@"->Disconnected");
+  [self goBackToMainView:self];
 }
 
 // When RSSI is changed, this will be called
@@ -113,7 +115,6 @@ NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
   switch (cmdId) {
     case kBikeTheftNotfMsg:
       {
-        NSString *rcvdMsg = [[NSString alloc] initWithCString:rcvdData encoding:NSASCIIStringEncoding];
         UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
                                                         message:bikeTheftNotfMsg
                                                        delegate:nil
@@ -127,88 +128,113 @@ NSString *bikeTheftNotfMsg = @"Your bike is being moved!!!";
   }
 }
 
+- (void)sendCommand:(BleCmdPhoneToTilt)cmd
+{
+  UInt8 buf[] = {cmd, 0x00, 0x00};
+  BOOL validCmd = YES;
+  
+  switch (cmd) {
+    case kTurnOnLight:
+      if (lightVal == FALSE) {
+        buf[1] = TRUE;
+        lightVal = TRUE;
+        [btnShowLight setImage:[UIImage imageNamed:@"LightOuterglow"] forState:(UIControlStateNormal)];
+      } else {
+        lightVal = FALSE;
+        [btnShowLight setImage:[UIImage imageNamed:@"Light"] forState:(UIControlStateNormal)];
+      }
+      break;
+    case kPlaySound:
+      if (soundVal == FALSE) {
+        buf[1] = TRUE;
+        soundVal = TRUE;
+        [btnPlaySound setImage:[UIImage imageNamed:@"EarSoundOuterglow"] forState:(UIControlStateNormal)];
+      } else {
+        soundVal = FALSE;
+        [btnPlaySound setImage:[UIImage imageNamed:@"earSound"] forState:(UIControlStateNormal)];
+      }
+      break;
+    case kResetPins:
+      break;
+    case kLightSound:
+      if (lightSoundVal == FALSE) {
+        buf[1] = TRUE;
+        lightSoundVal = TRUE;
+        [btnSoundLight setImage:[UIImage imageNamed:@"comboShortOutglow"] forState:(UIControlStateNormal)];
+      } else {
+        lightSoundVal = FALSE;
+        [btnSoundLight setImage:[UIImage imageNamed:@"comboShort"] forState:(UIControlStateNormal)];
+      }
+      break;
+    default:
+      validCmd = NO;
+      break;
+  }
+  
+  if (validCmd) {
+    NSData *data = [[NSData alloc] initWithBytes:buf length:sizeof(buf)];
+    [ble write:data];
+  }
+}
+
 - (IBAction)playSoundToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {kPlaySound, 0x00 , 0x00};
-  if (soundVal == FALSE) {
-    buf[1] = TRUE;
-    soundVal = TRUE;
-    [btnPlaySound setImage:[UIImage imageNamed:@"EarSoundOuterglow"] forState:(UIControlStateNormal)];
-  } else {
-    soundVal = FALSE;
-    [btnPlaySound setImage:[UIImage imageNamed:@"earSound"] forState:(UIControlStateNormal)];
-  }
-  NSData *data = [[NSData alloc] initWithBytes:buf length:3];
-  [ble write:data];
+  [self sendCommand:kPlaySound];
 }
 
 - (IBAction)showLightToFindBike:(id)sender forEvent:(UIEvent *)event
 {
-  UInt8 buf[3] = {kTurnOnLight, 0x00 , 0x00};
-  if (lightVal == FALSE) {
-    buf[1] = TRUE;
-    lightVal = TRUE;
-  } else {
-    lightVal = FALSE;
-  }
-  NSData *data = [[NSData alloc] initWithBytes:buf length:3];
-  [ble write:data];
+  [self sendCommand:kTurnOnLight];
 }
 
-- (IBAction)disconnect:(id)sender {
+- (IBAction)showLightSound:(id)sender
+{
+  [self sendCommand:kLightSound];
+}
+
+- (IBAction)disconnect:(id)sender
+{
   if (ble.activePeripheral) {
     if (ble.activePeripheral.state == CBPeripheralStateConnected) {
+      // Cancel existing operations
+      [self sendCommand:kResetPins];
+      // Disconnect from device
       [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
     }
   }
-  ble.delegate = nil;
 }
 
-- (IBAction)showLightSound:(id)sender {
-
-  UInt8 buf[3] = {kLightSound, 0x00 , 0x00};
-  if (lightSoundVal == FALSE) {
-    buf[1] = TRUE;
-    lightSoundVal = TRUE;
-  } else {
-    lightSoundVal = FALSE;
+- (void)goBackToMainView: (id)sender
+{
+  SEL theUnwindSelector = @selector(goBackToMainView:);
+  NSString *unwindSegueIdentifier = @"unwindToMainViewSegue";
+  
+  UINavigationController *nc = [self navigationController];
+  // Find the view controller that has this unwindAction selector (may not be one in the nav stack)
+  UIViewController *viewControllerToCallUnwindSelectorOn = [nc viewControllerForUnwindSegueAction: theUnwindSelector
+                                                                               fromViewController: self
+                                                                                       withSender: sender];
+  // None found, then do nothing.
+  if (viewControllerToCallUnwindSelectorOn == nil) {
+    NSLog(@"No controller found to unwind too");
+    return;
   }
-  NSData *data = [[NSData alloc] initWithBytes:buf length:3];
-  [ble write:data];
+  
+  // Can the controller that we found perform the unwind segue.  (This is decided by that controllers implementation of canPerformSeque: method
+  BOOL canPerformUnwind = [viewControllerToCallUnwindSelectorOn canPerformUnwindSegueAction:theUnwindSelector
+                                                            fromViewController: self
+                                                                    withSender: sender];
+  // If we have permission to perform the seque on the controller where the unwindAction is implmented
+  // then get the segue object and perform it.
+  if (canPerformUnwind) {
+    UIStoryboardSegue *unwindSegue = [nc segueForUnwindingToViewController: viewControllerToCallUnwindSelectorOn
+                                                        fromViewController: self
+                                                                identifier: unwindSegueIdentifier];
+    TiltMainViewController *mainVC = (TiltMainViewController *)viewControllerToCallUnwindSelectorOn;
+    [mainVC setConnectLabelText:@"Connect"];
+    [viewControllerToCallUnwindSelectorOn prepareForSegue: unwindSegue sender: self];
+    [unwindSegue perform];
+  }
 }
-
-//- (void)goBackToMainView: (id)sender
-//{
-//  SEL theUnwindSelector = @selector(goBackToMainView:);
-//  NSString *unwindSegueIdentifier = @"unwindToMainViewSegue";
-//  
-//  UINavigationController *nc = [self navigationController];
-//  // Find the view controller that has this unwindAction selector (may not be one in the nav stack)
-//  UIViewController *viewControllerToCallUnwindSelectorOn = [nc viewControllerForUnwindSegueAction: theUnwindSelector
-//                                                                               fromViewController: self
-//                                                                                       withSender: sender];
-//
-//  // None found, then do nothing.
-//  if (viewControllerToCallUnwindSelectorOn == nil) {
-//    NSLog(@"No controller found to unwind too");
-//    return;
-//  }
-//  
-//  // Can the controller that we found perform the unwind segue.  (This is decided by that controllers implementation of canPerformSeque: method
-//  BOOL cps = [viewControllerToCallUnwindSelectorOn canPerformUnwindSegueAction:theUnwindSelector
-//                                                            fromViewController: self
-//                                                                    withSender: sender];
-//  // If we have permission to perform the seque on the controller where the unwindAction is implmented
-//  // then get the segue object and perform it.
-//  if (cps) {
-//    UIStoryboardSegue *unwindSegue = [nc segueForUnwindingToViewController: viewControllerToCallUnwindSelectorOn
-//                                                        fromViewController: self
-//                                                                identifier: unwindSegueIdentifier];
-//    
-//    [viewControllerToCallUnwindSelectorOn prepareForSegue: unwindSegue sender: self];
-//    [unwindSegue perform];
-//  }
-//}
-
 
 @end

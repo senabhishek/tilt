@@ -8,6 +8,12 @@
 -(void)bleDidDisconnect;
 -(void)bleDidUpdateRSSI:(NSNumber *)rssi;
 -(void)bleDidReceiveData:(unsigned char *)data length:(int)length;
+@required
+@end
+
+@protocol BLEConnectDelegate
+@optional
+-(void)bleDidConnect;
 -(void)bleDidChangedStateToPoweredOn;
 @required
 @end
@@ -16,7 +22,8 @@
     
 }
 
-@property (nonatomic,assign) id <BLEDelegate> delegate;
+@property (nonatomic,assign) id <BLEDelegate> ble_delegate;
+@property (nonatomic,assign) id <BLEConnectDelegate> ble_connect_delegate;
 @property (strong, nonatomic) NSMutableArray *peripherals;
 @property (strong, nonatomic) CBCentralManager *CM;
 @property (strong, nonatomic) CBPeripheral *activePeripheral;

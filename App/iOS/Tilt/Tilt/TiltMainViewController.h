@@ -10,4 +10,5 @@
 
 @interface TiltMainViewController : UIViewController
 - (IBAction)goBackToMainView: (UIStoryboardSegue*) segue;
+- (void)setConnectLabelText: (NSString *) textVal;
 @end

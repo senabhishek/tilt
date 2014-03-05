@@ -15,15 +15,22 @@
 @property (weak, nonatomic) IBOutlet UIButton *btnConnect;
 @property (weak, nonatomic) IBOutlet UILabel *lblConnectBtn;
 - (IBAction)connect:(UIButton *)sender;
+@property (weak, nonatomic) IBOutlet UIActivityIndicatorView *actIndicatorConnecting;
 @property (strong, nonatomic) BLE *ble;
 @end
 
 @implementation TiltMainViewController
 @synthesize btnConnect;
 @synthesize lblConnectBtn;
+@synthesize actIndicatorConnecting;
 @synthesize ble;
 
-NSInteger const connectionTimeout = 3;
+NSInteger const connectionTimeout = 2;
+NSString *appNameString = @"T/LT";
+NSString *connectString = @"Connect";
+NSString *connectingString = @"Connecting ...";
+NSString *btDisabledString = @"Please make sure Bluetooth is enabled from the Settings App.";
+NSString *outOfRangeString = @"Could not find your T/LT device nearby. Please try again when in range.";
 
 - (id)initWithNibName:(NSString *)nibNameOrNil bundle:(NSBundle *)nibBundleOrNil
 {
@@ -38,7 +45,7 @@ NSInteger const connectionTimeout = 3;
 {
   [super viewDidLoad];
   ble = [BLE getInstance];
-  ble.delegate = self;
+  ble.ble_connect_delegate = self;
   [[self navigationController] setNavigationBarHidden:YES animated:YES];
   UIImageView *bgImageView = [[UIImageView alloc] initWithImage:[UIImage imageNamed:@"background"]];
   bgImageView.frame = self.view.bounds;
@@ -46,6 +53,7 @@ NSInteger const connectionTimeout = 3;
   bgImageView.alpha = 0.9;
   [self.view addSubview:bgImageView];
   [self.view sendSubviewToBack:bgImageView];
+  actIndicatorConnecting.hidden = YES;
 }
 
 - (void)didReceiveMemoryWarning
@@ -62,6 +70,9 @@ NSInteger const connectionTimeout = 3;
   UInt8 buf[] = {kResetPins, 0x00, 0x00};
   NSData *data = [[NSData alloc] initWithBytes:buf length:3];
   [ble write:data];
+  [actIndicatorConnecting stopAnimating];
+  actIndicatorConnecting.hidden = YES;
+  [btnConnect setEnabled:true];
   [self performSegueWithIdentifier: @"segueToTiltConnectedVC" sender: self];
 }
 
@@ -77,12 +88,11 @@ NSInteger const connectionTimeout = 3;
 
 - (void)initiateConnection
 {
-  ble.delegate = self;
   // Peripherals actively in use. Cancel the connection in order to create a new connection.
   if (ble.activePeripheral) {
     if (ble.activePeripheral.state == CBPeripheralStateConnected) {
       [[ble CM] cancelPeripheralConnection:[ble activePeripheral]];
-      lblConnectBtn.text = @"Connect";
+      lblConnectBtn.text = connectString;
       return;
     }
   }
@@ -94,15 +104,17 @@ NSInteger const connectionTimeout = 3;
   
   // Try to find peripherals for the next 2 seconds
   if ([ble findBLEPeripherals:connectionTimeout] != -1) {
-    lblConnectBtn.text = @"Connecting...";
+    lblConnectBtn.text = connectingString;
     [btnConnect setEnabled:false];
     
     // Start connection timer for connectionTimeout value
     [NSTimer scheduledTimerWithTimeInterval:(float)connectionTimeout target:self selector:@selector(connectionTimer:) userInfo:nil repeats:NO];
+    [actIndicatorConnecting startAnimating];
+    actIndicatorConnecting.hidden = NO;
   } else {
-    lblConnectBtn.text = @"Connect";
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
-                                                    message:@"Please make sure Bluetooth is enabled from the Settings App."
+    lblConnectBtn.text = connectString;
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:appNameString
+                                                    message:btDisabledString
                                                    delegate:nil
                                           cancelButtonTitle:@"Dismiss"
                                           otherButtonTitles:nil];
@@ -112,20 +124,22 @@ NSInteger const connectionTimeout = 3;
 
 - (void)connectionTimer:(NSTimer *)timer
 {
-  [btnConnect setEnabled:true];
-  
+ 
   if (ble.peripherals.count > 0) {
     [ble connectPeripheral:[ble.peripherals objectAtIndex:0]];
   }
   else {
-    lblConnectBtn.text = @"Connect";
-    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:@"T/LT"
-                                                    message:@"Could not find your T/LT device nearby. Please try again when in range."
+    [btnConnect setEnabled:true];
+    lblConnectBtn.text = connectString;
+    UIAlertView *alert = [[UIAlertView alloc] initWithTitle:appNameString
+                                                    message:outOfRangeString
                                                    delegate:nil
                                           cancelButtonTitle:@"Dismiss"
                                           otherButtonTitles:nil];
     [alert show];
   }
+  [actIndicatorConnecting stopAnimating];
+  actIndicatorConnecting.hidden = YES;
 }
 
 # pragma mark
@@ -142,7 +156,11 @@ NSInteger const connectionTimeout = 3;
 - (IBAction)goBackToMainView: (UIStoryboardSegue*)segue
 {
   NSLog(@"Called goBackToMainView: unwind action");
-  lblConnectBtn.text = @"Connect";
+}
+
+- (void)setConnectLabelText: (NSString *) textVal
+{
+  lblConnectBtn.text = textVal;
 }
 
 @end

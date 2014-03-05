@@ -8,7 +8,6 @@
 
 /* Begin PBXBuildFile section */
 		380D6E8518A19DCD00908F1F /* TiltMainViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = 380D6E8418A19DCD00908F1F /* TiltMainViewController.m */; };
-		381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 381D50B8186DD1ED0035BFED /* MapKit.framework */; };
 		381D50BE186DD4AE0035BFED /* BLE.m in Sources */ = {isa = PBXBuildFile; fileRef = 381D50BC186DD4AE0035BFED /* BLE.m */; };
 		389C81FA18733E77009B7025 /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 389C81F918733E77009B7025 /* Images.xcassets */; };
 		389C81FC187341D7009B7025 /* StringResource.strings in Resources */ = {isa = PBXBuildFile; fileRef = 389C81FB187341D7009B7025 /* StringResource.strings */; };
@@ -79,7 +78,6 @@
 				38DBDF90186DB0E500F64E64 /* CoreBluetooth.framework in Frameworks */,
 				38CF3649186D992300DA65AE /* CoreGraphics.framework in Frameworks */,
 				38CF364B186D992300DA65AE /* UIKit.framework in Frameworks */,
-				381D50B9186DD1ED0035BFED /* MapKit.framework in Frameworks */,
 				38CF3647186D992300DA65AE /* Foundation.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

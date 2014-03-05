@@ -5,7 +5,8 @@
 
 @implementation BLE
 
-@synthesize delegate;
+@synthesize ble_delegate;
+@synthesize ble_connect_delegate;
 @synthesize CM;
 @synthesize peripherals;
 @synthesize activePeripheral;
@@ -199,7 +200,7 @@ static BOOL isConnected = false;
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error;
 {
-  [delegate bleDidDisconnect];
+  [ble_delegate bleDidDisconnect];
   isConnected = false;
 }
 
@@ -241,7 +242,7 @@ static BOOL isConnected = false;
   
   // Try to autoconnect if we're not connected and the CB state just changed to CBCentralManagerStatePoweredOn
   if (!isConnected && central.state == CBCentralManagerStatePoweredOn) {
-    [delegate bleDidChangedStateToPoweredOn];
+    [ble_connect_delegate bleDidChangedStateToPoweredOn];
   }
 }
 
@@ -291,7 +292,7 @@ static BOOL isConnected = false;
       if ([service.UUID isEqual:s.UUID]) {
         if (!isConnected) {
           [self enableReadNotification:activePeripheral];
-          [delegate bleDidConnect];
+          [ble_connect_delegate bleDidConnect];
           isConnected = true;
         }
         break;
@@ -342,14 +343,14 @@ static BOOL isConnected = false;
         len += data_len;
         
         if (len >= 64) {
-          [delegate bleDidReceiveData:buf length:len];
+          [ble_delegate bleDidReceiveData:buf length:len];
           len = 0;
         }
       } else if (data_len < MAX_RX_BUF_PKT_SZ) {
         memcpy(&buf[len], data, data_len);
         len += data_len;
         
-        [delegate bleDidReceiveData:buf length:len];
+        [ble_delegate bleDidReceiveData:buf length:len];
         len = 0;
       }
     }
@@ -368,7 +369,7 @@ static BOOL isConnected = false;
   if (currentRSSI != peripheral.RSSI)
   {
     currentRSSI = peripheral.RSSI;
-    [delegate bleDidUpdateRSSI:activePeripheral.RSSI];
+    [ble_delegate bleDidUpdateRSSI:activePeripheral.RSSI];
   }
 }
 
